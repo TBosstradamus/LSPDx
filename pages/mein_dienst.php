@@ -26,17 +26,17 @@ try {
     $currentClockIn = $timeClockModel->getCurrentStatus($currentUser['id']);
 } catch (InvalidArgumentException $e) {
     error_log($e->getMessage());
-    die("A critical error occurred. The time clock feature is unavailable.");
+    die("Ein kritischer Fehler ist aufgetreten. Die Stempeluhr-Funktion ist nicht verfügbar.");
 }
 
 function formatDuration($totalSeconds) {
-    if (!$totalSeconds || $totalSeconds < 0) return '0h 0m';
+    if (!$totalSeconds || $totalSeconds < 0) return '0 Std. 0 Min.';
     $hours = floor($totalSeconds / 3600);
     $minutes = floor(($totalSeconds % 3600) / 60);
-    return "{$hours}h {$minutes}m";
+    return "{$hours} Std. {$minutes} Min.";
 }
 
-$pageTitle = 'My Profile';
+$pageTitle = 'Mein Dienst';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
@@ -47,22 +47,22 @@ include_once BASE_PATH . '/templates/header.php';
         <!-- Officer Details Card -->
         <div class="bg-brand-card border border-brand-border rounded-lg shadow">
             <div class="p-6">
-                <h3 class="text-xl font-bold text-white mb-4">Officer Details</h3>
+                <h3 class="text-xl font-bold text-white mb-4">Ihre Personalakte</h3>
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                     <div>
                         <dt class="text-sm font-medium text-brand-text-secondary">Name</dt>
                         <dd class="mt-1 text-lg text-white"><?php echo htmlspecialchars($currentUser['firstName'] . ' ' . $currentUser['lastName']); ?></dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-brand-text-secondary">Badge Number</dt>
+                        <dt class="text-sm font-medium text-brand-text-secondary">Dienstnummer</dt>
                         <dd class="mt-1 text-lg text-white">#<?php echo htmlspecialchars($currentUser['badgeNumber']); ?></dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-brand-text-secondary">Rank</dt>
+                        <dt class="text-sm font-medium text-brand-text-secondary">Rang</dt>
                         <dd class="mt-1 text-lg text-white"><?php echo htmlspecialchars($currentUser['rank']); ?></dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-brand-text-secondary">Phone Number</dt>
+                        <dt class="text-sm font-medium text-brand-text-secondary">Telefonnummer</dt>
                         <dd class="mt-1 text-lg text-white"><?php echo htmlspecialchars($currentUser['phoneNumber'] ?? 'N/A'); ?></dd>
                     </div>
                 </dl>
@@ -72,8 +72,8 @@ include_once BASE_PATH . '/templates/header.php';
         <!-- Licenses Card -->
         <div class="bg-brand-card border border-brand-border rounded-lg shadow">
             <div class="p-6">
-                <h3 class="text-xl font-bold text-white mb-4">Your Licenses</h3>
-                <p class="text-brand-text-secondary">This feature will be implemented in a future update.</p>
+                <h3 class="text-xl font-bold text-white mb-4">Ihre Lizenzen</h3>
+                <p class="text-brand-text-secondary">Diese Funktion wird in einem zukünftigen Update implementiert.</p>
             </div>
         </div>
     </div>
@@ -81,27 +81,27 @@ include_once BASE_PATH . '/templates/header.php';
     <!-- Right Column (Time Clock) -->
     <div class="lg:col-span-1">
         <div class="bg-brand-card border border-brand-border rounded-lg shadow p-6 text-center">
-            <h3 class="text-xl font-bold text-white mb-4">Time Clock</h3>
+            <h3 class="text-xl font-bold text-white mb-4">Stempeluhr</h3>
             <?php if ($currentClockIn): ?>
-                <p class="text-brand-text-secondary">Current Session:</p>
+                <p class="text-brand-text-secondary">Aktuelle Dienstzeit:</p>
                 <div id="running-time-display" class="text-5xl font-mono font-bold text-white my-4">00:00:00</div>
                 <form action="index.php?page=handle_clock_out" method="POST">
                     <input type="hidden" name="record_id" value="<?php echo $currentClockIn['id']; ?>">
                     <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors">
-                        Clock Out
+                        Ausstempeln
                     </button>
                 </form>
             <?php else: ?>
-                <p class="text-brand-text-secondary">You are currently off duty.</p>
+                <p class="text-brand-text-secondary">Sie sind aktuell nicht im Dienst.</p>
                 <div class="text-5xl font-mono font-bold text-gray-600 my-4">--:--:--</div>
                  <form action="index.php?page=handle_clock_in" method="POST">
                     <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors">
-                        Clock In
+                        Einstempeln
                     </button>
                 </form>
             <?php endif; ?>
             <div class="mt-6 border-t border-brand-border pt-4">
-                <p class="text-sm font-medium text-brand-text-secondary">Total Approved Duty Time</p>
+                <p class="text-sm font-medium text-brand-text-secondary">Gesamte Dienstzeit</p>
                 <p class="text-2xl font-bold text-white mt-1"><?php echo formatDuration($currentUser['totalHours']); ?></p>
             </div>
         </div>

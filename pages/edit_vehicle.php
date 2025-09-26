@@ -14,7 +14,7 @@ if (!$vehicleId) {
     header('Location: index.php?page=fuhrpark'); exit;
 }
 
-$vehicleModel = new Vehicle();
+$vehicleModel = new Vehicle($_SESSION['organization_id']);
 $vehicle = $vehicleModel->findById($vehicleId);
 
 if (!$vehicle) {

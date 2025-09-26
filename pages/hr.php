@@ -19,22 +19,22 @@ require_once BASE_PATH . '/src/Officer.php';
 $officerModel = new Officer($_SESSION['organization_id']);
 $officers = $officerModel->getAll();
 
-$pageTitle = 'Officers';
+$pageTitle = 'Personal';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
 <!-- Start of page-specific content -->
 <div class="flex justify-between items-center mb-6">
     <div>
-        <h1 class="text-3xl font-bold text-white">Officers</h1>
-        <p class="mt-1 text-brand-text-secondary">Manage all officers in your organization.</p>
+        <h1 class="text-3xl font-bold text-white">Personal</h1>
+        <p class="mt-1 text-brand-text-secondary">Verwalten Sie alle Beamten in Ihrer Organisation.</p>
     </div>
     <div>
         <a href="index.php?page=add_officer" class="bg-brand-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
             <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            Add Officer
+            Beamten hinzufügen
         </a>
     </div>
 </div>
@@ -42,9 +42,9 @@ include_once BASE_PATH . '/templates/header.php';
 <?php if (isset($_GET['status'])): ?>
     <div class="bg-green-500/20 border border-green-500 text-green-300 p-4 rounded-lg mb-6">
         <?php
-        if ($_GET['status'] === 'officer_added') echo 'The officer was successfully added.';
-        if ($_GET['status'] === 'officer_updated') echo 'The officer was successfully updated.';
-        if ($_GET['status'] === 'roles_updated') echo 'The officer\'s roles were successfully updated.';
+        if ($_GET['status'] === 'officer_added') echo 'Der Beamte wurde erfolgreich hinzugefügt.';
+        if ($_GET['status'] === 'officer_updated') echo 'Der Beamte wurde erfolgreich aktualisiert.';
+        if ($_GET['status'] === 'roles_updated') echo 'Die Rollen des Beamten wurden erfolgreich aktualisiert.';
         ?>
     </div>
 <?php endif; ?>
@@ -58,7 +58,7 @@ include_once BASE_PATH . '/templates/header.php';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
             </div>
-            <input type="text" name="search" id="search" class="block w-full pl-10 pr-3 py-2 bg-brand-bg border border-brand-border rounded-md leading-5 text-brand-text-primary placeholder-brand-text-secondary focus:outline-none focus:bg-brand-sidebar focus:border-brand-blue" placeholder="Search officers...">
+            <input type="text" name="search" id="search" class="block w-full pl-10 pr-3 py-2 bg-brand-bg border border-brand-border rounded-md leading-5 text-brand-text-primary placeholder-brand-text-secondary focus:outline-none focus:bg-brand-sidebar focus:border-brand-blue" placeholder="Beamte suchen...">
         </div>
     </div>
 
@@ -66,7 +66,7 @@ include_once BASE_PATH . '/templates/header.php';
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
         <?php if (empty($officers)): ?>
             <div class="col-span-full text-center text-brand-text-secondary py-10">
-                No officers found in the database.
+                Keine Beamten in der Datenbank gefunden.
             </div>
         <?php else: ?>
             <?php foreach ($officers as $officer): ?>
@@ -89,7 +89,7 @@ include_once BASE_PATH . '/templates/header.php';
                             #<?php echo htmlspecialchars($officer['badgeNumber']); ?>
                         </div>
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $officer['isActive'] ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'; ?>">
-                            <?php echo $officer['isActive'] ? 'Active' : 'Inactive'; ?>
+                            <?php echo $officer['isActive'] ? 'Aktiv' : 'Inaktiv'; ?>
                         </span>
                     </div>
                 </a>
