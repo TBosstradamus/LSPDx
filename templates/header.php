@@ -8,6 +8,13 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 // Get the current page from the query string to set the 'active' class
 $currentPage = $_GET['page'] ?? '';
 
+// Define page groups for titles
+$pageGroups = [
+    'Hauptmenü' => ['dashboard', 'dispatch', 'mein_dienst', 'mailbox'],
+    'Verwaltung' => ['hr', 'fuhrpark', 'checklists', 'training_modules', 'documents'],
+    'System' => ['it_logs'],
+];
+
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -23,16 +30,25 @@ $currentPage = $_GET['page'] ?? '';
         <aside class="sidebar">
             <h2>LSPD Intranet</h2>
             <nav>
+                <!-- Group 1: Hauptmenü -->
+                <h3 class="nav-heading">Hauptmenü</h3>
                 <a href="index.php?page=dashboard" class="<?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>">Dashboard</a>
+                <a href="index.php?page=dispatch" class="<?php echo ($currentPage === 'dispatch') ? 'active' : ''; ?>">Dispatch</a>
                 <a href="index.php?page=mein_dienst" class="<?php echo ($currentPage === 'mein_dienst') ? 'active' : ''; ?>">Mein Dienst</a>
-                <a href="index.php?page=hr" class="<?php echo ($currentPage === 'hr') ? 'active' : ''; ?>">Personalabteilung</a>
-                <a href="index.php?page=fuhrpark" class="<?php echo ($currentPage === 'fuhrpark') ? 'active' : ''; ?>">Fuhrpark</a>
-                <a href="index.php?page=training_modules" class="<?php echo ($currentPage === 'training_modules') ? 'active' : ''; ?>">Trainings-Module</a>
-                <a href="index.php?page=checklists" class="<?php echo ($currentPage === 'checklists') ? 'active' : ''; ?>">FTO Checklisten</a>
-                <a href="index.php?page=documents" class="<?php echo ($currentPage === 'documents') ? 'active' : ''; ?>">Dokumente</a>
                 <a href="index.php?page=mailbox" class="<?php echo ($currentPage === 'mailbox') ? 'active' : ''; ?>">Postfach</a>
-                <a href="index.php?page=it_logs" class="<?php echo ($currentPage === 'it_logs') ? 'active' : ''; ?>">IT-Protokolle</a>
-                <!-- More links can be added here -->
+
+                <!-- Group 2: Verwaltung -->
+                <h3 class="nav-heading">Verwaltung</h3>
+                <a href="index.php?page=hr" class="<?php echo ($currentPage === 'hr') ? 'active' : ''; ?>">Personal</a>
+                <a href="index.php?page=fuhrpark" class="<?php echo ($currentPage === 'fuhrpark') ? 'active' : ''; ?>">Fuhrpark</a>
+                <a href="index.php?page=checklists" class="<?php echo ($currentPage === 'checklists') ? 'active' : ''; ?>">FTO Checklisten</a>
+                <a href="index.php?page=training_modules" class="<?php echo ($currentPage === 'training_modules') ? 'active' : ''; ?>">Trainings-Module</a>
+                <a href="index.php?page=documents" class="<?php echo ($currentPage === 'documents') ? 'active' : ''; ?>">Dokumente</a>
+
+                <!-- Group 3: System -->
+                <h3 class="nav-heading">System</h3>
+                 <a href="index.php?page=it_logs" class="<?php echo ($currentPage === 'it_logs') ? 'active' : ''; ?>">IT-Protokolle</a>
+
             </nav>
             <a href="index.php?page=logout" class="logout-link">Abmelden</a>
         </aside>
