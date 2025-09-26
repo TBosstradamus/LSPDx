@@ -9,19 +9,14 @@ require_once __DIR__ . '/Database.php';
 
 class Sanction {
     private $db;
-    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
-        if (isset($_SESSION['organization_id'])) {
-            $this->organization_id = $_SESSION['organization_id'];
-        } else {
-            die("Fehler: Organisations-ID nicht gefunden.");
-        }
     }
 
     /**
-     * Fetches all sanctions from the current user's organization.
+     * Fetches all sanctions from the database, joining with officer names.
+     *
      * @return array An array of all sanctions.
      */
     public function getAll() {
@@ -35,11 +30,9 @@ class Sanction {
                     FROM sanctions s
                     JOIN officers o ON s.officer_id = o.id
                     JOIN officers i ON s.issued_by_officer_id = i.id
-                    WHERE s.organization_id = ?
                     ORDER BY s.timestamp DESC";
 
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$this->organization_id]);
+            $stmt = $this->db->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching sanctions: " . $e->getMessage());
@@ -48,7 +41,8 @@ class Sanction {
     }
 
     /**
-     * Creates a new sanction in the current user's organization.
+     * Creates a new sanction in the database.
+     *
      * @param array $data The sanction's data from the form.
      * @return bool True on success, false on failure.
      */
@@ -58,12 +52,11 @@ class Sanction {
         }
 
         try {
-            $sql = "INSERT INTO sanctions (organization_id, officer_id, issued_by_officer_id, sanctionType, reason)
-                    VALUES (?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO sanctions (officer_id, issued_by_officer_id, sanctionType, reason)
+                    VALUES (?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
-                $this->organization_id,
                 $data['officer_id'],
                 $data['issued_by_officer_id'],
                 $data['sanctionType'],

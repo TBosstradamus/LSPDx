@@ -9,19 +9,13 @@ require_once __DIR__ . '/Database.php';
 
 class TimePauseLog {
     private $db;
-    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
-        if (isset($_SESSION['organization_id'])) {
-            $this->organization_id = $_SESSION['organization_id'];
-        } else {
-            die("Fehler: Organisations-ID nicht gefunden.");
-        }
     }
 
     /**
-     * Gets all pause log entries for the organization.
+     * Gets all pause log entries.
      * @return array
      */
     public function getAll() {
@@ -33,11 +27,10 @@ class TimePauseLog {
                     FROM time_pause_log tpl
                     JOIN officers o ON tpl.officer_id = o.id
                     LEFT JOIN officers r ON tpl.reviewed_by_id = r.id
-                    WHERE tpl.organization_id = ?
                     ORDER BY tpl.status = 'pending' DESC, tpl.pause_start_time DESC";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$this->organization_id]);
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching pause logs: " . $e->getMessage());
@@ -64,12 +57,12 @@ class TimePauseLog {
     public function reject($logId, $reviewerId) {
         $this->db->beginTransaction();
         try {
-            $logStmt = $this->db->prepare("SELECT officer_id, duration FROM time_pause_log WHERE id = ? AND organization_id = ?");
-            $logStmt->execute([$logId, $this->organization_id]);
+            $logStmt = $this->db->prepare("SELECT officer_id, duration FROM time_pause_log WHERE id = ?");
+            $logStmt->execute([$logId]);
             $log = $logStmt->fetch();
 
             if (!$log || !$log['duration']) {
-                throw new Exception("Log entry or duration not found.");
+                throw new Exception("Log entry or duration not found for rejection.");
             }
 
             // Subtract the duration from the officer's totalHours
@@ -92,9 +85,9 @@ class TimePauseLog {
         try {
             $sql = "UPDATE time_pause_log
                     SET status = ?, reviewed_by_id = ?, reviewed_at = NOW()
-                    WHERE id = ? AND status = 'pending' AND organization_id = ?";
+                    WHERE id = ? AND status = 'pending'";
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$status, $reviewerId, $logId, $this->organization_id]);
+            return $stmt->execute([$status, $reviewerId, $logId]);
         } catch (PDOException $e) {
             error_log("Error updating pause log status: " . $e->getMessage());
             return false;

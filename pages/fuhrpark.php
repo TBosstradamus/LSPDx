@@ -1,39 +1,34 @@
 <?php
-// Prevent direct access
 if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
-    http_response_code(403);
-    die('Forbidden');
+    http_response_code(403); die('Forbidden');
 }
-
-// Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php?page=login');
-    exit;
+    header('Location: index.php?page=login'); exit;
 }
-requirePermission('fleet_access');
+// requirePermission('fleet_view');
 
-// --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Vehicle.php';
 
-// --- PAGE-SPECIFIC LOGIC ---
 $vehicleModel = new Vehicle();
 $vehicles = $vehicleModel->getAll();
 
-// --- TEMPLATE ---
 $pageTitle = 'Fuhrpark';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
 <!-- Start of page-specific content -->
-<div style="display: flex; justify-content: space-between; align-items: center;">
-    <p>Verwalten Sie hier den gesamten Fuhrpark des LSPD.</p>
-    <?php if (hasPermission('fleet_manage')): ?>
-        <a href="index.php?page=add_vehicle" class="button">Fahrzeug hinzufügen</a>
-    <?php endif; ?>
+<div class="flex justify-between items-center mb-6">
+    <p class="text-gray-400">Verwalten Sie hier die Stammdaten aller Fahrzeuge Ihrer Organisation.</p>
+    <div>
+        <a href="index.php?page=add_vehicle" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
+             <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Fahrzeug hinzufügen
+        </a>
+    </div>
 </div>
 
 <?php if (isset($_GET['status'])): ?>
-    <div class="message-success">
+    <div class="bg-green-500 text-white p-4 rounded-lg mb-6">
         <?php
         if ($_GET['status'] === 'vehicle_added') echo 'Das Fahrzeug wurde erfolgreich hinzugefügt.';
         if ($_GET['status'] === 'vehicle_updated') echo 'Das Fahrzeug wurde erfolgreich aktualisiert.';
@@ -41,60 +36,39 @@ include_once BASE_PATH . '/templates/header.php';
         ?>
     </div>
 <?php endif; ?>
-<?php if (isset($_GET['error'])): ?>
-    <div class="message-error">
-        Ein Fehler ist aufgetreten. Die Aktion konnte nicht abgeschlossen werden.
-    </div>
-<?php endif; ?>
 
-
-<section id="vehicle-list">
-    <h2>Fahrzeugliste (Master Fleet)</h2>
-    <table>
-        <thead>
+<div class="bg-gray-800 rounded-lg shadow overflow-hidden">
+    <table class="min-w-full">
+        <thead class="bg-gray-700">
             <tr>
-                <th>Name</th>
-                <th>Kategorie</th>
-                <th>Kennzeichen</th>
-                <th>Kilometerstand</th>
-                <th>Letzter Checkup</th>
-                <th>Nächster Checkup</th>
-                <?php if (hasPermission('fleet_manage')): ?>
-                    <th>Aktionen</th>
-                <?php endif; ?>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Kategorie</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Kennzeichen</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Kilometerstand</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Aktionen</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="bg-gray-800 divide-y divide-gray-700">
             <?php if (empty($vehicles)): ?>
                 <tr>
-                    <td colspan="7" style="text-align: center;">Keine Fahrzeuge in der Datenbank gefunden.</td>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-400">Keine Fahrzeuge in der Datenbank gefunden.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($vehicles as $vehicle): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($vehicle['name']); ?></td>
-                        <td><?php echo htmlspecialchars($vehicle['category']); ?></td>
-                        <td><?php echo htmlspecialchars($vehicle['licensePlate']); ?></td>
-                        <td><?php echo htmlspecialchars(number_format($vehicle['mileage'], 0, ',', '.')); ?> km</td>
-                        <td><?php echo htmlspecialchars($vehicle['lastCheckup'] ? date('d.m.Y', strtotime($vehicle['lastCheckup'])) : 'N/A'); ?></td>
-                        <td><?php echo htmlspecialchars($vehicle['nextCheckup'] ? date('d.m.Y', strtotime($vehicle['nextCheckup'])) : 'N/A'); ?></td>
-                        <?php if (hasPermission('fleet_manage')): ?>
-                            <td>
-                                <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="button button-secondary">Bearbeiten</a>
-                                <form action="index.php?page=handle_delete_vehicle" method="POST" style="display: inline;">
-                                    <input type="hidden" name="id" value="<?php echo $vehicle['id']; ?>">
-                                    <button type="submit" class="button button-danger" onclick="return confirm('Sind Sie sicher, dass Sie dieses Fahrzeug löschen möchten?');">
-                                        Löschen
-                                    </button>
-                                </form>
-                            </td>
-                        <?php endif; ?>
+                    <tr class="hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white"><?php echo htmlspecialchars($vehicle['name']); ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars($vehicle['category']); ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars($vehicle['licensePlate']); ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars(number_format($vehicle['mileage'], 0, ',', '.')); ?> km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="text-indigo-400 hover:text-indigo-300">Bearbeiten</a>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
         </tbody>
     </table>
-</section>
+</div>
 <!-- End of page-specific content -->
 
 <?php

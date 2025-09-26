@@ -17,12 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check here
-requirePermission('hr_manage_officers');
-
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';
-require_once BASE_PATH . '/src/Logger.php';
 
 // --- LOGIC ---
 $officerId = $_POST['id'] ?? null;
@@ -35,16 +31,11 @@ $officerModel = new Officer();
 $success = $officerModel->update($officerId, $_POST);
 
 if ($success) {
-    // Success: Log the event and redirect.
-    $officerName = $_POST['firstName'] . ' ' . $_POST['lastName'];
-    Logger::log('officer_updated', "Daten für Beamten '{$officerName}' (ID: {$officerId}) wurden aktualisiert.");
-
+    // Success: Redirect to the main HR page with a success message.
     header('Location: index.php?page=hr&status=officer_updated');
     exit;
 } else {
-    // Failure: Log the event and redirect back.
-    Logger::log('officer_update_failed', "Fehler beim Aktualisieren von Beamten-ID {$officerId}.", null, $_POST);
-
+    // Failure: Redirect back to the edit form with an error.
     header('Location: index.php?page=edit_officer&id=' . $officerId . '&error=update_failed');
     exit;
 }

@@ -6,6 +6,7 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Organization.php';
 
 class Dispatch {
     private $db;
@@ -21,13 +22,17 @@ class Dispatch {
     }
 
     public function getState() {
-        $allAssignments = $this->getAllAssignments();
+        $orgModel = new Organization();
+        $sharedOrgIds = $orgModel->getSharedOrgsFor('dispatch_view');
+        $visibleOrgIds = array_unique(array_merge([$this->organization_id], $sharedOrgIds));
 
-        $vehicles = $this->getOnDutyVehiclesWithAssignments($allAssignments);
+        $allAssignments = $this->getAllAssignments($visibleOrgIds);
+
+        $vehicles = $this->getOnDutyVehiclesWithAssignments($allAssignments, $visibleOrgIds);
         $headerRoles = $this->getHeaderAssignments($allAssignments);
         $onActivityOfficers = $this->getOnActivityOfficers($allAssignments);
 
-        $assignedOfficerIds = array_column($allAssignments, 'officer_id');
+        $assignedOfficerIds = array_column($this->getAllAssignments([$this->organization_id]), 'officer_id');
         $availableOfficers = $this->getAvailableOfficers($assignedOfficerIds);
 
         return [
@@ -38,25 +43,33 @@ class Dispatch {
         ];
     }
 
-    private function getAllAssignments() {
-        $sql = "SELECT da.*, o.id, o.firstName, o.lastName, o.badgeNumber, o.rank
+    private function getAllAssignments($orgIds) {
+        if (empty($orgIds)) return [];
+        $placeholders = implode(',', array_fill(0, count($orgIds), '?'));
+        $sql = "SELECT da.*, o.id, o.firstName, o.lastName, o.badgeNumber, o.rank, o.display_name, o.organization_id as officer_org_id
                 FROM dispatch_assignments da
                 JOIN officers o ON da.officer_id = o.id
-                WHERE da.organization_id = ?";
+                WHERE da.organization_id IN ($placeholders)";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$this->organization_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute($orgIds);
+        $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($assignments as &$assignment) {
+            if ($assignment['officer_org_id'] == 2 && !empty($assignment['display_name']) && $this->organization_id != 2) {
+                $assignment['firstName'] = $assignment['display_name'];
+                $assignment['lastName'] = '(FIB)';
+            }
+        }
+        return $assignments;
     }
 
-    private function getOnDutyVehiclesWithAssignments($allAssignments) {
-        $stmt = $this->db->prepare("SELECT * FROM vehicles WHERE organization_id = ? AND on_duty = TRUE ORDER BY name");
-        $stmt->execute([$this->organization_id]);
+    private function getOnDutyVehiclesWithAssignments($allAssignments, $orgIds) {
+        if (empty($orgIds)) return [];
+        $placeholders = implode(',', array_fill(0, count($orgIds), '?'));
+        $stmt = $this->db->prepare("SELECT * FROM vehicles WHERE organization_id IN ($placeholders) AND on_duty = TRUE ORDER BY name");
+        $stmt->execute($orgIds);
         $vehicles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $vehicleAssignments = array_filter($allAssignments, function($a) {
-            return $a['assignment_type'] === 'vehicle';
-        });
-
+        $vehicleAssignments = array_filter($allAssignments, fn($a) => $a['assignment_type'] === 'vehicle');
         foreach ($vehicles as &$vehicle) {
             $seats = array_fill(0, $vehicle['capacity'], null);
             foreach ($vehicleAssignments as $assignment) {
@@ -71,10 +84,7 @@ class Dispatch {
 
     private function getHeaderAssignments($allAssignments) {
         $allRoles = ['dispatch' => null, 'co-dispatch' => null, 'air1' => null, 'air2' => null];
-        $headerAssignments = array_filter($allAssignments, function($a) {
-            return $a['assignment_type'] === 'header';
-        });
-
+        $headerAssignments = array_filter($allAssignments, fn($a) => $a['assignment_type'] === 'header' && $a['organization_id'] == $this->organization_id);
         foreach ($headerAssignments as $assignment) {
             if (isset($allRoles[$assignment['assignment_id']])) {
                 $allRoles[$assignment['assignment_id']] = $assignment;
@@ -84,9 +94,7 @@ class Dispatch {
     }
 
     private function getOnActivityOfficers($allAssignments) {
-        return array_filter($allAssignments, function($a) {
-            return $a['assignment_type'] === 'activity';
-        });
+        return array_filter($allAssignments, fn($a) => $a['assignment_type'] === 'activity' && $a['organization_id'] == $this->organization_id);
     }
 
     private function getAvailableOfficers($assignedOfficerIds) {
@@ -95,12 +103,12 @@ class Dispatch {
                 JOIN time_tracking tt ON o.id = tt.officer_id
                 WHERE o.organization_id = ? AND o.isActive = TRUE AND tt.clockOutTime IS NULL";
         $params = [$this->organization_id];
-
         if (!empty($assignedOfficerIds)) {
             $placeholders = implode(',', array_fill(0, count($assignedOfficerIds), '?'));
             $sql .= " AND o.id NOT IN ($placeholders)";
             $params = array_merge($params, $assignedOfficerIds);
         }
+        $sql .= " ORDER BY o.lastName, o.firstName";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -120,13 +128,8 @@ class Dispatch {
     }
 
     private function _unassignOfficer($officerId) {
-        // Unassign from the dispatch table
-        $this->db->prepare("DELETE FROM dispatch_assignments WHERE organization_id = ? AND officer_id = ?")
-             ->execute([$this->organization_id, $officerId]);
-
-        // Update the officer's last assignment timestamp to NOW(), effectively starting their "idle" timer
-        $this->db->prepare("UPDATE officers SET last_assignment_time = NOW() WHERE id = ?")
-             ->execute([$officerId]);
+        $this->db->prepare("DELETE FROM dispatch_assignments WHERE officer_id = ?")->execute([$officerId]);
+        $this->db->prepare("UPDATE officers SET last_assignment_time = NOW() WHERE id = ?")->execute([$officerId]);
     }
 
     public function assignOfficerToVehicle($officerId, $vehicleId, $seatIndex) {
