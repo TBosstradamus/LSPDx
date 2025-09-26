@@ -5,10 +5,10 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     die('Forbidden');
 }
 ?>
-        </main> <!-- End of .content -->
-    </div> <!-- End of .main-layout -->
-
-    <!-- Global JS file can be included here -->
-    <!-- <script src="public/js/main.js"></script> -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
 </body>
 </html>

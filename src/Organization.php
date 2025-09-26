@@ -71,5 +71,23 @@ class Organization {
             return false;
         }
     }
+
+    /**
+     * Gets a list of organization IDs that are sharing a specific data type
+     * with the current user's organization.
+     * @param string $dataType e.g., 'dispatch_view'
+     * @return array List of source organization IDs.
+     */
+    public function getSharedOrgsFor($dataType) {
+        try {
+            $sql = "SELECT source_org_id FROM organization_sharing WHERE target_org_id = ? AND data_type = ? AND can_access = TRUE";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$_SESSION['organization_id'], $dataType]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            error_log("Error fetching shared orgs: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 ?>

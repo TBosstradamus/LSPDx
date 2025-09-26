@@ -23,12 +23,7 @@ class Auth {
      */
     public function login($username, $password) {
         try {
-            // Prepare a statement to find the user and their organization
-            $sql = "SELECT u.*, o.organization_id
-                    FROM users u
-                    JOIN officers o ON u.officer_id = o.id
-                    WHERE u.username = :username";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username");
             $stmt->bindParam(':username', $username);
             $stmt->execute();
 
@@ -45,9 +40,7 @@ class Auth {
             return false;
 
         } catch (PDOException $e) {
-            // In a real app, log this error.
-            // For now, we'll just return false.
-            // error_log("Login failed: " . $e->getMessage());
+            error_log("Login failed: " . $e->getMessage());
             return false;
         }
     }
@@ -78,66 +71,12 @@ class Auth {
 
     /**
      * A utility function to hash a password.
-     * Useful for creating user accounts manually or via a script.
      *
      * @param string $password The plain-text password.
      * @return string The hashed password.
      */
     public static function hashPassword($password) {
         return password_hash($password, PASSWORD_DEFAULT);
-    }
-
-    /**
-     * Fetches all users with their associated officer details.
-     * @return array
-     */
-    public function getAllUsersWithOfficerDetails() {
-        try {
-            $sql = "SELECT
-                        u.id as user_id,
-                        u.username,
-                        u.createdAt,
-                        o.id as officer_id,
-                        o.firstName,
-                        o.lastName,
-                        o.badgeNumber
-                    FROM users u
-                    JOIN officers o ON u.officer_id = o.id
-                    ORDER BY o.lastName, o.firstName";
-
-            $stmt = $this->db->query($sql);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error fetching users: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Regenerates a password for a given user ID.
-     * @param int $userId
-     * @return string|false The new plain-text password on success, false on failure.
-     */
-    public function regeneratePassword($userId) {
-        // Generate a new random password
-        $newPassword = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 10);
-        $newPasswordHash = self::hashPassword($newPassword);
-
-        try {
-            $sql = "UPDATE users SET password_hash = :password_hash WHERE id = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':password_hash', $newPasswordHash);
-            $stmt->bindParam(':id', $userId, PDO::PARAM_INT);
-
-            if ($stmt->execute()) {
-                return $newPassword; // Return the plain-text password
-            }
-            return false;
-
-        } catch (PDOException $e) {
-            error_log("Error regenerating password: " . $e->getMessage());
-            return false;
-        }
     }
 }
 ?>

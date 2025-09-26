@@ -9,27 +9,18 @@ require_once __DIR__ . '/Database.php';
 
 class Officer {
     private $db;
-    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
-        // Store the organization ID from the session upon instantiation
-        if (isset($_SESSION['organization_id'])) {
-            $this->organization_id = $_SESSION['organization_id'];
-        } else {
-            // This should not happen for a logged-in user, but as a safeguard:
-            die("Fehler: Organisations-ID nicht gefunden. Bitte neu anmelden.");
-        }
     }
 
     /**
-     * Fetches all officers from the current user's organization.
+     * Fetches all officers from the database.
      * @return array An array of all officers.
      */
     public function getAll() {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM officers WHERE organization_id = ? ORDER BY lastName, firstName");
-            $stmt->execute([$this->organization_id]);
+            $stmt = $this->db->query("SELECT * FROM officers ORDER BY lastName, firstName");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching officers: " . $e->getMessage());
@@ -38,14 +29,14 @@ class Officer {
     }
 
     /**
-     * Fetches a single officer by their ID, ensuring they belong to the correct organization.
+     * Fetches a single officer by their ID.
      * @param int $id The ID of the officer.
      * @return array|false The officer's data or false if not found.
      */
     public function findById($id) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM officers WHERE id = ? AND organization_id = ?");
-            $stmt->execute([$id, $this->organization_id]);
+            $stmt = $this->db->prepare("SELECT * FROM officers WHERE id = ?");
+            $stmt->execute([$id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error finding officer by ID: " . $e->getMessage());
@@ -54,7 +45,7 @@ class Officer {
     }
 
     /**
-     * Creates a new officer in the current user's organization.
+     * Creates a new officer.
      * @param array $data The officer's data from the form.
      * @return int|false The ID of the new officer or false on failure.
      */
@@ -64,12 +55,11 @@ class Officer {
         }
 
         try {
-            $sql = "INSERT INTO officers (organization_id, firstName, lastName, badgeNumber, phoneNumber, gender, rank, isActive)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)";
+            $sql = "INSERT INTO officers (firstName, lastName, badgeNumber, phoneNumber, gender, rank, isActive)
+                    VALUES (?, ?, ?, ?, ?, ?, TRUE)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                $this->organization_id,
                 $data['firstName'],
                 $data['lastName'],
                 $data['badgeNumber'],
@@ -85,7 +75,7 @@ class Officer {
     }
 
     /**
-     * Updates an officer's data, ensuring they belong to the correct organization.
+     * Updates an officer's data.
      * @param int $id The ID of the officer to update.
      * @param array $data The new data for the officer.
      * @return bool True on success, false on failure.
@@ -98,12 +88,10 @@ class Officer {
         try {
             $sql = "UPDATE officers SET
                         firstName = ?, lastName = ?, badgeNumber = ?, phoneNumber = ?,
-                        gender = ?, rank = ?, isActive = ?, display_name = ?
-                    WHERE id = ? AND organization_id = ?";
+                        gender = ?, rank = ?, isActive = ?
+                    WHERE id = ?";
 
             $stmt = $this->db->prepare($sql);
-            // Use null coalescing operator for display_name
-            $displayName = !empty($data['display_name']) ? $data['display_name'] : null;
             return $stmt->execute([
                 $data['firstName'],
                 $data['lastName'],
@@ -112,9 +100,7 @@ class Officer {
                 $data['gender'],
                 $data['rank'],
                 filter_var($data['isActive'], FILTER_VALIDATE_BOOLEAN),
-                $displayName,
-                $id,
-                $this->organization_id
+                $id
             ]);
         } catch (PDOException $e) {
             error_log("Error updating officer: " . $e->getMessage());

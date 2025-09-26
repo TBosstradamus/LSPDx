@@ -1,5 +1,5 @@
 <?php
-// LSPD Management Application
+// LSPD Management Application - Stable Core Version
 // Main Entry Point
 
 // --- CONFIGURATION & INITIALIZATION ---
@@ -14,7 +14,6 @@ define('BASE_PATH', __DIR__);
 require_once BASE_PATH . '/config.php';
 require_once BASE_PATH . '/src/Database.php';
 require_once BASE_PATH . '/src/Auth.php';
-require_once BASE_PATH . '/src/auth_helpers.php';
 
 // --- ROUTING ---
 $page = $_GET['page'] ?? 'login';
@@ -32,7 +31,6 @@ $pageRoutes = [
     'hr', 'add_officer', 'handle_add_officer', 'edit_officer', 'handle_edit_officer',
     'sanctions', 'add_sanction', 'handle_add_sanction',
     'credentials', 'handle_regenerate_password',
-    'edit_user_roles', 'handle_edit_user_roles',
     'fuhrpark', 'add_vehicle', 'handle_add_vehicle', 'edit_vehicle', 'handle_edit_vehicle', 'handle_delete_vehicle',
     'fleet_management', 'handle_toggle_vehicle_duty',
     'documents', 'add_document', 'handle_add_document', 'view_document', 'handle_delete_document',
@@ -40,16 +38,14 @@ $pageRoutes = [
     'checklists', 'edit_checklist', 'handle_edit_checklist',
     'mailbox', 'compose_email', 'handle_compose_email', 'view_email',
     'it_logs',
-    'time_approval', 'handle_time_approval',
-    'system_org_settings', 'system_rights_management', 'edit_role_permissions', 'handle_edit_role_permissions',
-    'handle_clock_in', 'handle_clock_out',
+    'time_approval',
+    'handle_time_approval',
 ];
 
 $apiRoutes = [
     'assign_officer_to_vehicle', 'unassign_officer', 'assign_officer_to_header', 'assign_officer_to_activity',
     'dispatch_status',
     'set_vehicle_status', 'set_vehicle_funk', 'set_vehicle_callsign',
-    'get_org_settings', 'save_org_settings',
     'get_settings',
 ];
 

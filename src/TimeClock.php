@@ -61,15 +61,5 @@ class TimeClock {
             return false;
         }
     }
-
-    public function pause($timeTrackingId) {
-        $stmt = $this->db->prepare("UPDATE time_tracking SET is_paused = TRUE WHERE id = ? AND organization_id = ?");
-        return $stmt->execute([$timeTrackingId, $this->organization_id]);
-    }
-
-    public function resume($timeTrackingId) {
-        $stmt = $this->db->prepare("UPDATE time_tracking SET is_paused = FALSE WHERE id = ? AND organization_id = ?");
-        return $stmt->execute([$timeTrackingId, $this->organization_id]);
-    }
 }
 ?>

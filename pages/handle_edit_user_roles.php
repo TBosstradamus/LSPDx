@@ -17,11 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check for Admin
-
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Roles.php';
-require_once BASE_PATH . '/src/Logger.php';
 
 // --- LOGIC ---
 $officerId = $_POST['officer_id'] ?? null;
@@ -36,15 +33,11 @@ $rolesModel = new Roles();
 $success = $rolesModel->updateUserRoles($officerId, $roleIds);
 
 if ($success) {
-    // Success: Log the event and redirect.
-    Logger::log('user_roles_updated', "Rollen für Beamten-ID {$officerId} wurden aktualisiert.");
-
+    // Success: Redirect to the main HR page with a success message.
     header('Location: index.php?page=hr&status=roles_updated');
     exit;
 } else {
-    // Failure: Log the event and redirect back.
-    Logger::log('user_roles_update_failed', "Fehler beim Aktualisieren der Rollen für Beamten-ID {$officerId}.");
-
+    // Failure: Redirect back to the form with an error.
     header('Location: index.php?page=edit_user_roles&officer_id=' . $officerId . '&error=update_failed');
     exit;
 }

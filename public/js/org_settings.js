@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.error) {
-                matrixContainer.innerHTML = `<p style="color: #f85149;">Fehler: ${data.error}</p>`;
+                matrixContainer.innerHTML = `<p class="text-red-400">Fehler: ${data.error}</p>`;
                 return;
             }
 
@@ -23,35 +23,36 @@ document.addEventListener('DOMContentLoaded', () => {
             sharingSettings = data.sharing_settings;
             renderMatrix();
         } catch (e) {
-            matrixContainer.innerHTML = '<p style="color: #f85149;">Fehler beim Laden der Einstellungsmatrix.</p>';
+            matrixContainer.innerHTML = '<p class="text-red-400">Fehler beim Laden der Einstellungsmatrix.</p>';
         }
     }
 
     function renderMatrix() {
-        let tableHTML = '<table><thead><tr><th>Quelle \\ Ziel</th>';
+        let tableHTML = '<table class="min-w-full"><thead class="bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Quelle \\ Ziel</th>';
         organizations.forEach(targetOrg => {
-            tableHTML += `<th>${targetOrg.name}</th>`;
+            tableHTML += `<th class="px-6 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider">${targetOrg.name}</th>`;
         });
-        tableHTML += '</tr></thead><tbody>';
+        tableHTML += '</tr></thead><tbody class="bg-gray-800 divide-y divide-gray-700">';
 
         organizations.forEach(sourceOrg => {
-            tableHTML += `<tr><td class="source-org">${sourceOrg.name}</td>`;
+            tableHTML += `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">${sourceOrg.name}</td>`;
             organizations.forEach(targetOrg => {
                 if (sourceOrg.id === targetOrg.id) {
-                    tableHTML += '<td>--</td>';
+                    tableHTML += '<td class="px-6 py-4">--</td>';
                 } else {
-                    tableHTML += '<td>';
+                    tableHTML += '<td class="px-6 py-4">';
                     dataTypes.forEach(type => {
                         const isChecked = isSharingEnabled(sourceOrg.id, targetOrg.id, type.key);
                         tableHTML += `
-                            <div>
+                            <div class="flex items-center">
                                 <input type="checkbox"
                                        id="share-${sourceOrg.id}-${targetOrg.id}-${type.key}"
+                                       class="h-4 w-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                                        data-source-id="${sourceOrg.id}"
                                        data-target-id="${targetOrg.id}"
                                        data-type="${type.key}"
                                        ${isChecked ? 'checked' : ''}>
-                                <label for="share-${sourceOrg.id}-${targetOrg.id}-${type.key}" class="data-type-label">
+                                <label for="share-${sourceOrg.id}-${targetOrg.id}-${type.key}" class="ml-2 block text-sm text-gray-300">
                                     ${type.label}
                                 </label>
                             </div>`;

@@ -1,25 +1,17 @@
 <?php
-// Prevent direct access
 if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
-    http_response_code(403);
-    die('Forbidden');
+    http_response_code(403); die('Forbidden');
 }
-
-// Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php?page=login');
-    exit;
+    header('Location: index.php?page=login'); exit;
 }
-requirePermission('hr_manage_sanctions');
+// requirePermission('hr_sanctions_manage');
 
-// --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';
 
-// --- PAGE-SPECIFIC LOGIC ---
 $officerModel = new Officer();
 $officers = $officerModel->getAll();
 
-// Define the available sanction types
 $sanctionTypes = [
   'Verwarnung',
   'Suspendierung (24h)',
@@ -28,55 +20,57 @@ $sanctionTypes = [
   'Entlassung',
 ];
 
-// --- TEMPLATE ---
-$pageTitle = 'Sanktion hinzufügen';
+$pageTitle = 'Sanktion verhängen';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
-<style>
-    .form-container { max-width: 800px; margin: 0 auto; background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; margin-bottom: 0.5rem; color: #a0aec0; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border-radius: 0.25rem; background-color: #1a202c; border: 1px solid #4a5568; color: #e2e8f0; box-sizing: border-box; font-family: inherit; }
-    .form-group textarea { min-height: 150px; }
-    .form-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
-</style>
+<!-- Start of page-specific content -->
+<div class="max-w-3xl mx-auto">
+    <div class="bg-gray-800 rounded-lg shadow-lg">
+        <div class="p-6">
+            <form action="index.php?page=handle_add_sanction" method="POST">
+                <div class="space-y-6">
+                    <!-- Officer -->
+                    <div>
+                        <label for="officer_id" class="block text-sm font-medium text-gray-300">Betroffener Beamter</label>
+                        <select id="officer_id" name="officer_id" required class="mt-1 block w-full bg-gray-900 border-gray-700 rounded-md shadow-sm text-white focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- Beamten auswählen --</option>
+                            <?php foreach ($officers as $officer): ?>
+                                <option value="<?php echo $officer['id']; ?>">
+                                    <?php echo htmlspecialchars($officer['lastName'] . ', ' . $officer['firstName'] . ' (#' . $officer['badgeNumber'] . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <!-- Sanction Type -->
+                    <div>
+                        <label for="sanctionType" class="block text-sm font-medium text-gray-300">Art der Sanktion</label>
+                        <select id="sanctionType" name="sanctionType" required class="mt-1 block w-full bg-gray-900 border-gray-700 rounded-md shadow-sm text-white focus:ring-blue-500 focus:border-blue-500">
+                            <?php foreach ($sanctionTypes as $type): ?>
+                                <option value="<?php echo htmlspecialchars($type); ?>"><?php echo htmlspecialchars($type); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <!-- Reason -->
+                    <div>
+                        <label for="reason" class="block text-sm font-medium text-gray-300">Begründung</label>
+                        <textarea id="reason" name="reason" rows="6" required class="mt-1 block w-full bg-gray-900 border-gray-700 rounded-md shadow-sm text-white focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                </div>
 
-<div class="form-container">
-    <form action="index.php?page=handle_add_sanction" method="POST">
-
-        <div class="form-group">
-            <label for="officer_id">Betroffener Beamter</label>
-            <select id="officer_id" name="officer_id" required>
-                <option value="">-- Beamten auswählen --</option>
-                <?php foreach ($officers as $officer): ?>
-                    <option value="<?php echo $officer['id']; ?>">
-                        <?php echo htmlspecialchars($officer['firstName'] . ' ' . $officer['lastName'] . ' (#' . $officer['badgeNumber'] . ')'); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+                <div class="mt-8 flex justify-end space-x-4">
+                    <a href="index.php?page=sanctions" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Abbrechen
+                    </a>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Sanktion verhängen
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div class="form-group">
-            <label for="sanctionType">Art der Sanktion</label>
-            <select id="sanctionType" name="sanctionType" required>
-                 <?php foreach ($sanctionTypes as $type): ?>
-                    <option value="<?php echo htmlspecialchars($type); ?>"><?php echo htmlspecialchars($type); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="reason">Begründung</label>
-            <textarea id="reason" name="reason" required></textarea>
-        </div>
-
-        <div class="form-actions">
-            <a href="index.php?page=sanctions" class="button button-secondary">Abbrechen</a>
-            <button type="submit" class="button button-danger">Sanktion verhängen</button>
-        </div>
-    </form>
+    </div>
 </div>
+<!-- End of page-specific content -->
 
 <?php
 include_once BASE_PATH . '/templates/footer.php';

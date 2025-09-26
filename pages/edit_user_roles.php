@@ -11,11 +11,11 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// TODO: Add permission check for Admin
+// requirePermission('hr_manage_roles'); // This will be added in the rights management phase
 
 // --- DEPENDENCIES ---
-require_once BASE_PATH . '/src/Roles.php';
 require_once BASE_PATH . '/src/Officer.php';
+require_once BASE_PATH . '/src/Roles.php';
 
 // --- PAGE-SPECIFIC LOGIC ---
 $officerId = $_GET['officer_id'] ?? null;
@@ -39,47 +39,42 @@ $userRoleIds = array_column($userRoles, 'id');
 
 
 $pageTitle = 'Rollen bearbeiten: ' . htmlspecialchars($officer['firstName'] . ' ' . $officer['lastName']);
-include_once BASE_PATH . '/templates/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($pageTitle); ?> - LSPD Intranet</title>
+    <link rel="stylesheet" href="public/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1><?php echo htmlspecialchars($pageTitle); ?></h1>
+        <form action="index.php?page=handle_edit_user_roles" method="POST">
+            <input type="hidden" name="officer_id" value="<?php echo $officer['id']; ?>">
 
-<style>
-    .form-container { max-width: 800px; margin: 0 auto; background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; }
-    .form-group { margin-bottom: 1rem; }
-    .role-list { list-style: none; padding: 0; }
-    .role-item { display: flex; align-items: center; margin-bottom: 0.75rem; }
-    .role-item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 1rem; }
-    .role-item label { color: #e2e8f0; margin: 0; }
-    .role-item .description { font-size: 0.9rem; color: #a0aec0; margin-left: 2.5rem; }
-    .form-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
-</style>
-
-<div class="form-container">
-    <form action="index.php?page=handle_edit_user_roles" method="POST">
-        <input type="hidden" name="officer_id" value="<?php echo $officer['id']; ?>">
-
-        <div class="form-group">
-            <h3>Rollen für <?php echo htmlspecialchars($officer['firstName'] . ' ' . $officer['lastName']); ?></h3>
-            <ul class="role-list">
-                <?php foreach ($allRoles as $role): ?>
-                    <li class="role-item">
-                        <input type="checkbox" name="roles[]" value="<?php echo $role['id']; ?>" id="role-<?php echo $role['id']; ?>"
-                            <?php echo in_array($role['id'], $userRoleIds) ? 'checked' : ''; ?>>
-                        <div>
+            <div class="form-group">
+                <h3>Rollen</h3>
+                <?php if (empty($allRoles)): ?>
+                    <p>Keine Rollen im System definiert.</p>
+                <?php else: ?>
+                    <?php foreach ($allRoles as $role): ?>
+                        <div class="role-item">
+                            <input type="checkbox" name="roles[]" value="<?php echo $role['id']; ?>" id="role-<?php echo $role['id']; ?>"
+                                <?php echo in_array($role['id'], $userRoleIds) ? 'checked' : ''; ?>>
                             <label for="role-<?php echo $role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></label>
-                            <div class="description"><?php echo htmlspecialchars($role['description']); ?></div>
+                            <p class="description"><?php echo htmlspecialchars($role['description']); ?></p>
                         </div>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
 
-        <div class="form-actions">
-            <a href="index.php?page=hr" class="button button-secondary">Abbrechen</a>
-            <button type="submit" class="button">Rollen speichern</button>
-        </div>
-    </form>
-</div>
-
-<?php
-include_once BASE_PATH . '/templates/footer.php';
-?>
+            <div class="form-actions">
+                <a href="index.php?page=hr" class="button button-secondary">Abbrechen</a>
+                <button type="submit" class="button">Rollen speichern</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

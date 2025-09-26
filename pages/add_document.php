@@ -1,50 +1,49 @@
 <?php
-// Prevent direct access
 if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
-    http_response_code(403);
-    die('Forbidden');
+    http_response_code(403); die('Forbidden');
 }
-
-// Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php?page=login');
-    exit;
+    header('Location: index.php?page=login'); exit;
 }
-requirePermission('documents_manage');
+// requirePermission('manage_documents');
 
-// --- TEMPLATE ---
-$pageTitle = 'Dokument hinzufügen';
+$pageTitle = 'Neues Dokument erstellen';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
-<style>
-    .form-container { max-width: 900px; margin: 0 auto; background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; margin-bottom: 0.5rem; color: #a0aec0; }
-    .form-group input, .form-group textarea { width: 100%; padding: 0.75rem; border-radius: 0.25rem; background-color: #1a202c; border: 1px solid #4a5568; color: #e2e8f0; box-sizing: border-box; font-family: inherit; }
-    .form-group textarea { min-height: 400px; line-height: 1.6; }
-    .form-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
-</style>
+<!-- Start of page-specific content -->
+<div class="max-w-4xl mx-auto">
+    <div class="bg-gray-800 rounded-lg shadow-lg">
+        <div class="p-6">
+            <form action="index.php?page=handle_add_document" method="POST">
+                <div class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-300">Titel des Dokuments</label>
+                        <input type="text" name="title" id="title" required class="mt-1 block w-full bg-gray-900 border-gray-700 rounded-md shadow-sm text-white focus:ring-blue-500 focus:border-blue-500">
+                    </div>
 
-<div class="form-container">
-    <form action="index.php?page=handle_add_document" method="POST">
+                    <!-- Content -->
+                    <div>
+                        <label for="content" class="block text-sm font-medium text-gray-300">Inhalt</label>
+                        <p class="text-xs text-gray-400 mb-1">Einfaches Markdown wird unterstützt (z.B. `# Überschrift`, `*fett*`, `- Listenpunkt`).</p>
+                        <textarea id="content" name="content" rows="15" required class="mt-1 block w-full bg-gray-900 border-gray-700 rounded-md shadow-sm text-white focus:ring-blue-500 focus:border-blue-500 font-mono"></textarea>
+                    </div>
+                </div>
 
-        <div class="form-group">
-            <label for="title">Titel des Dokuments</label>
-            <input type="text" id="title" name="title" required>
+                <div class="mt-8 flex justify-end space-x-4">
+                    <a href="index.php?page=documents" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Abbrechen
+                    </a>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                        Dokument speichern
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div class="form-group">
-            <label for="content">Inhalt (Markdown wird unterstützt)</label>
-            <textarea id="content" name="content" required></textarea>
-        </div>
-
-        <div class="form-actions">
-            <a href="index.php?page=documents" class="button button-secondary">Abbrechen</a>
-            <button type="submit" class="button">Dokument speichern</button>
-        </div>
-    </form>
+    </div>
 </div>
+<!-- End of page-specific content -->
 
 <?php
 include_once BASE_PATH . '/templates/footer.php';
