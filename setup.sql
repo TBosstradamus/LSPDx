@@ -275,4 +275,14 @@ CREATE TABLE `email_recipients` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+--
+-- Create default admin user
+--
+INSERT INTO `officers` (`id`, `badgeNumber`, `firstName`, `lastName`, `gender`, `rank`, `isActive`) VALUES (1, '001', 'Admin', 'User', 'male', 'Chief of Police', 1);
+-- The password is 'password'. A bcrypt hash for this is generated here.
+INSERT INTO `users` (`officer_id`, `username`, `password_hash`) VALUES (1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
+-- Assign to 'Admin' department (ID should be 9 based on default data)
+INSERT INTO `officer_departments` (`officer_id`, `department_id`) VALUES (1, 9);
+
+
 SET foreign_key_checks = 1;
