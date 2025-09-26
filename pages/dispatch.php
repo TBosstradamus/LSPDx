@@ -80,6 +80,23 @@ $pageTitle = 'Dispatch Dashboard';
                     </div>
                 <?php endforeach; ?>
             </div>
+
+            <div class="sidebar-divider"></div>
+            <h3>Weitere Tätigkeiten</h3>
+            <div id="activity-zones">
+                <div class="activity-zone" data-activity-name="Innendienst">
+                    <h4>Innendienst</h4>
+                    <div class="activity-officers"></div>
+                </div>
+                <div class="activity-zone" data-activity-name="Persogespräch">
+                    <h4>Persogespräch</h4>
+                    <div class="activity-officers"></div>
+                </div>
+                 <div class="activity-zone" data-activity-name="Wartung/Reparatur">
+                    <h4>Wartung/Reparatur</h4>
+                    <div class="activity-officers"></div>
+                </div>
+            </div>
         </aside>
 
         <main class="dispatch-grid-container">

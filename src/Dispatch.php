@@ -79,132 +79,92 @@ class Dispatch {
     }
 
     private function getAvailableOfficers($assignedOfficerIds) {
-        if (empty($assignedOfficerIds)) {
-            $sql = "SELECT id, firstName, lastName, badgeNumber, rank FROM officers WHERE isActive = TRUE";
-            $stmt = $this->db->query($sql);
-        } else {
-            // Create placeholders for the IN clause
+        // Base query to get all clocked-in, active officers
+        $sql = "SELECT DISTINCT o.id, o.firstName, o.lastName, o.badgeNumber, o.rank
+                FROM officers o
+                JOIN time_tracking tt ON o.id = tt.officer_id
+                WHERE o.isActive = TRUE AND tt.clockOutTime IS NULL";
+
+        if (!empty($assignedOfficerIds)) {
             $placeholders = implode(',', array_fill(0, count($assignedOfficerIds), '?'));
-            $sql = "SELECT id, firstName, lastName, badgeNumber, rank FROM officers WHERE isActive = TRUE AND id NOT IN ($placeholders)";
+            $sql .= " AND o.id NOT IN ($placeholders)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute($assignedOfficerIds);
+        } else {
+            $stmt = $this->db->query($sql);
         }
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Assigns an officer to a vehicle seat.
-     * This method will remove the officer from any previous assignment.
-     * @param int $officerId
-     * @param int $vehicleId
-     * @param int $seatIndex
-     * @return bool
-     */
+    private function getOnActivityOfficers() {
+        $sql = "SELECT aa.activity_name, o.id as officer_id, o.firstName, o.lastName, o.badgeNumber, o.rank
+                FROM activity_assignments aa
+                JOIN officers o ON aa.officer_id = o.id
+                ORDER BY aa.timestamp DESC";
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function assignOfficerToVehicle($officerId, $vehicleId, $seatIndex) {
-        $this->db->beginTransaction();
-        try {
-            // First, remove the officer from any existing assignment to prevent conflicts
+        return $this->performTransactionalAssignment(function() use ($officerId, $vehicleId, $seatIndex) {
             $this->_unassignOfficer($officerId);
-
-            $sql = "INSERT INTO vehicle_assignments (vehicle_id, officer_id, seat_index) VALUES (:vehicle_id, :officer_id, :seat_index)";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':vehicle_id', $vehicleId, PDO::PARAM_INT);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $stmt->bindParam(':seat_index', $seatIndex, PDO::PARAM_INT);
-            $stmt->execute();
-
-            $this->db->commit();
-            return true;
-        } catch (PDOException $e) {
-            $this->db->rollBack();
-            error_log("Error assigning officer: " . $e->getMessage());
-            return false;
-        }
+            $sql = "INSERT INTO vehicle_assignments (vehicle_id, officer_id, seat_index) VALUES (?, ?, ?)";
+            $this->db->prepare($sql)->execute([$vehicleId, $officerId, $seatIndex]);
+        });
     }
 
-    /**
-     * Removes an officer from any assignment they currently have.
-     * @param int $officerId
-     */
-    /**
-     * Clears all assignments for a given officer.
-     * This is the public method that should be called from handlers.
-     * @param int $officerId
-     */
-    public function clearOfficerAssignments($officerId) {
-        try {
-            $this->db->beginTransaction();
-            $this->_unassignOfficer($officerId);
-            $this->db->commit();
-        } catch (PDOException $e) {
-            $this->db->rollBack();
-            error_log("Error clearing officer assignments: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Assigns an officer to a header role. This is now transactional.
-     * @param int $officerId
-     * @param string $roleName
-     * @return bool
-     */
     public function assignOfficerToHeader($officerId, $roleName) {
+        return $this->performTransactionalAssignment(function() use ($officerId, $roleName) {
+            $this->_unassignOfficer($officerId);
+            $sql = "INSERT INTO header_assignments (role_name, officer_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE officer_id = ?";
+            $this->db->prepare($sql)->execute([$roleName, $officerId, $officerId]);
+        });
+    }
+
+    public function assignOfficerToActivity($officerId, $activityName) {
+        return $this->performTransactionalAssignment(function() use ($officerId, $activityName) {
+            $this->_unassignOfficer($officerId);
+            $sql = "INSERT INTO activity_assignments (officer_id, activity_name) VALUES (?, ?)";
+            $this->db->prepare($sql)->execute([$officerId, $activityName]);
+        });
+    }
+
+    public function unassignOfficerFromAll($officerId) {
+        return $this->performTransactionalAssignment(function() use ($officerId) {
+            $this->_unassignOfficer($officerId);
+        });
+    }
+
+    private function performTransactionalAssignment(callable $callback) {
         $this->db->beginTransaction();
         try {
-            $this->_unassignOfficer($officerId);
-
-            $sql = "INSERT INTO header_assignments (role_name, officer_id)
-                    VALUES (:role_name, :officer_id)
-                    ON DUPLICATE KEY UPDATE officer_id = :officer_id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':role_name', $roleName, PDO::PARAM_STR);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $stmt->execute();
-
+            $callback();
             $this->db->commit();
             return true;
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("Error assigning officer to header: " . $e->getMessage());
+            error_log("Transactional assignment failed: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Internal method to unassign an officer. Does not handle transactions.
-     * @param int $officerId
-     */
     private function _unassignOfficer($officerId) {
-        // Remove from vehicle assignments
-        $sqlVehicle = "DELETE FROM vehicle_assignments WHERE officer_id = :officer_id";
-        $stmtVehicle = $this->db->prepare($sqlVehicle);
-        $stmtVehicle->execute([':officer_id' => $officerId]);
-
-        // Remove from header assignments
-        $sqlHeader = "DELETE FROM header_assignments WHERE officer_id = :officer_id";
-        $stmtHeader = $this->db->prepare($sqlHeader);
-        $stmtHeader->execute([':officer_id' => $officerId]);
+        $this->db->prepare("DELETE FROM vehicle_assignments WHERE officer_id = ?")->execute([$officerId]);
+        $this->db->prepare("DELETE FROM header_assignments WHERE officer_id = ?")->execute([$officerId]);
+        $this->db->prepare("DELETE FROM activity_assignments WHERE officer_id = ?")->execute([$officerId]);
     }
 
     private function getHeaderAssignments() {
         try {
-            $sql = "SELECT h.role_name, o.id as officer_id, o.firstName, o.lastName
-                    FROM header_assignments h
-                    JOIN officers o ON h.officer_id = o.id";
-            $stmt = $this->db->query($sql);
-            $assignments = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-            // Ensure all roles are present in the final array
             $allRoles = ['dispatch' => null, 'co-dispatch' => null, 'air1' => null, 'air2' => null];
             $assignedRoles = $this->db->query("SELECT h.role_name, o.id as officer_id, o.firstName, o.lastName FROM header_assignments h JOIN officers o ON h.officer_id = o.id")->fetchAll(PDO::FETCH_GROUP);
-
             foreach ($assignedRoles as $role => $officerArray) {
-                $allRoles[$role] = $officerArray[0]; // fetchAll(PDO::FETCH_GROUP) creates a nested array
+                if (isset($allRoles[$role])) {
+                    $allRoles[$role] = $officerArray[0];
+                }
             }
-
             return $allRoles;
-
         } catch (PDOException $e) {
             error_log("Error fetching header assignments: " . $e->getMessage());
             return [];

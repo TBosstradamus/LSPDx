@@ -174,8 +174,28 @@ CREATE TABLE `time_tracking` (
   `clockInTime` TIMESTAMP NOT NULL,
   `clockOutTime` TIMESTAMP NULL,
   `duration` INT DEFAULT NULL, -- in seconds
+  `is_paused` BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Table structure for table `time_pause_log`
+--
+DROP TABLE IF EXISTS `time_pause_log`;
+CREATE TABLE `time_pause_log` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `officer_id` INT NOT NULL,
+  `pause_start_time` TIMESTAMP NOT NULL,
+  `pause_end_time` TIMESTAMP NULL,
+  `duration` INT, -- in seconds
+  `reason` VARCHAR(255) NOT NULL,
+  `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  `reviewed_by_id` INT,
+  `reviewed_at` TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reviewed_by_id`) REFERENCES `officers`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -242,7 +262,10 @@ CREATE TABLE `settings` (
 INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('checklist_template', '# Allgemeine Checkliste\n- [ ] Ausrüstung geprüft\n- [ ] Fahrzeug-Check durchgeführt\n- [ ] Status im Funk gemeldet\n\n# Verhalten im Dienst\n- [ ] Respektvoller Umgang mit Bürgern\n- [ ] Einhaltung der StVO\n\n# Nach dem Dienst\n- [ ] Bericht geschrieben\n- [ ] Ausrüstung abgegeben');
 
 -- Insert callsign data as JSON
-INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('callsign_data', '{"general":[{"code":"10-01","meaning":"Dienst Antritt"},{"code":"10-02","meaning":"Dienst Austritt"},{"code":"10-03","meaning":"Funkcheck"},{"code":"10-04","meaning":"Information verstanden"},{"code":"10-09","meaning":"Funkspruch"},{"code":"10-15","meaning":"Verdächtiger in Gewahrsam"},{"code":"10-17","meaning":"Rückkehr zum Department mit TV"},{"code":"10-19","meaning":"Rückkehr"},{"code":"10-20","meaning":"Aktuelle Position"},{"code":"10-22","meaning":"Abholung benötigt"},{"code":"10-28","meaning":"Aktueller Status"},{"code":"10-33","meaning":"Verunfallt"},{"code":"10-60","meaning":"Aktive Verkehrskontrolle"},{"code":"10-78","meaning":"Dringend Verstärkung benötigt"},{"code":"10-79","meaning":"Request Air Support"},{"code":"10-80","meaning":"Aktive Verfolgungsjagd"},{"code":"10-90","meaning":"Officer in Bedrängnis"},{"code":"11-99","meaning":"Officer unter starkem Beschuss (äußerster Notfall)"},{"code":"Shots fired","meaning":"Schüsse abgegeben oder gefallen"},{"code":"Security Check","meaning":"Frage von Duspatch ob alles in Ordnung ist"}],"status":[{"code":"Code 0","meaning":"Gamecrash / Kopfschmerzen"},{"code":"Code 1","meaning":"Einsatzbereit / Streifenfahrt"},{"code":"Code 2","meaning":"Anfahrt des Dispatches ohne Sonderrechte"},{"code":"Code 3","meaning":"Anfahrt des Dispatches mit Sonderrechte"},{"code":"Code 4","meaning":"Keine weiteren Einheiten benötigt / Einsatz beendet"},{"code":"Code 5","meaning":"Stand-By"},{"code":"Code 6","meaning":"Pause"}],"unit":[{"code":"Sam","meaning":"Einzelstreife"},{"code":"Adam","meaning":"Doppeltstreife"},{"code":"Paul","meaning":"Sergent Streife"},{"code":"Metro","meaning":"SWAT Streife"},{"code":"Air","meaning":"Overwatch"},{"code":"David","meaning":"Detective Streife"},{"code":"Motor","meaning":"Motorradeinheit"},{"code":"Tom","meaning":"Traffic Division"}]}');
+INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('callsign_data', '{"general":[{"code":"10-01","meaning":"Dienst Antritt"},{"code":"10-02","meaning":"Dienst Austritt"},{"code":"10-03","meaning":"Funkcheck"},{"code":"10-04","meaning":"Information verstanden"},{"code":"10-09","meaning":"Funkspruch"},{"code":"10-15","meaning":"Verdächtiger in Gewahrsam"},{"code":"10-17","meaning":"Rückkehr zum Department mit TV"},{"code":"10-19","meaning":"Rückkehr"},{"code":"10-20","meaning":"Aktuelle Position"},{"code":"10-22","meaning":"Abholung benötigt"},{"code":"10-28","meaning":"Aktueller Status"},{"code":"10-33","meaning":"Verunfallt"},{"code":"10-60","meaning":"Aktive Verkehrskontrolle"},{"code":"10-78","meaning":"Dringend Verstärkung benötigt"},{"code":"10-79","meaning":"Request Air Support"},{"code":"10-80","meaning":"Aktive Verfolgungsjagd"},{"code":"10-90","meaning":"Officer in Bedrängnis"},{"code":"11-99","meaning":"Officer unter starkem Beschuss (äußerster Notfall)"},{"code":"Shots fired","meaning":"Schüsse abgegeben oder gefallen"},{"code":"Security Check","meaning":"Frage von Duspatch ob alles in Ordnung ist"}],"status":[{"code":"Code 0","meaning":"Gamecrash / Kopfschmerzen"},{"code":"Code 1","meaning":"Einsatzbereit / Streifenfahrt"},{"code":"Code 2","meaning":"Anfahrt ohne Sonderrechte"},{"code":"Code 3","meaning":"Anfahrt mit Sonderrechte"},{"code":"Code 4","meaning":"Keine weiteren Einheiten benötigt"},{"code":"Code 5","meaning":"Stand-By"},{"code":"Code 6","meaning":"Pause"},{"code":"Code 7","meaning":"Shots Fired"}],"unit":[{"code":"Sam","meaning":"Einzelstreife"},{"code":"Adam","meaning":"Doppeltstreife"},{"code":"Paul","meaning":"Sergent Streife"},{"code":"Metro","meaning":"SWAT Streife"},{"code":"Air","meaning":"Overwatch"},{"code":"David","meaning":"Detective Streife"},{"code":"Motor","meaning":"Motorradeinheit"},{"code":"Tom","meaning":"Traffic Division"}]}');
+
+-- Insert funk channels as JSON
+INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('funk_channels', '["PD 1.1", "PD 1.2", "PD 2.1", "PD 2.2", "FIB 4.1", "USMS 6.1", "LSMD 8.1", "DOJ 11.1"]');
 
 --
 -- Table structure for table `emails`
@@ -374,6 +397,18 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (4, 8), (4, 9
 
 -- Beamter (Role 5) gets basic access
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (5, 2), (5, 13), (5, 15);
+
+--
+-- Table structure for table `activity_assignments`
+--
+DROP TABLE IF EXISTS `activity_assignments`;
+CREATE TABLE `activity_assignments` (
+  `officer_id` INT NOT NULL,
+  `activity_name` VARCHAR(100) NOT NULL,
+  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`officer_id`),
+  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 SET foreign_key_checks = 1;

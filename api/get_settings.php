@@ -23,15 +23,16 @@ if (!isset($_SESSION['user_id'])) {
 // --- ACTION ---
 try {
     $settingsModel = new Settings();
-    $callsignDataJson = $settingsModel->getSetting('callsign_data');
 
-    if ($callsignDataJson) {
-        // The data is stored as a JSON string, so we decode it before sending.
-        $callsignData = json_decode($callsignDataJson, true);
-        echo json_encode($callsignData);
-    } else {
-        echo json_encode(['error' => 'Callsign data not found.']);
-    }
+    $callsignDataJson = $settingsModel->getSetting('callsign_data');
+    $funkChannelsJson = $settingsModel->getSetting('funk_channels');
+
+    $settings = [
+        'callsigns' => $callsignDataJson ? json_decode($callsignDataJson, true) : null,
+        'funk_channels' => $funkChannelsJson ? json_decode($funkChannelsJson, true) : []
+    ];
+
+    echo json_encode($settings);
 
 } catch (Exception $e) {
     http_response_code(500);
