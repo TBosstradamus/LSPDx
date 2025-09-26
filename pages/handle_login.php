@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // --- DEPENDENCIES ---
-// Auth class is already loaded by index.php
+require_once BASE_PATH . '/src/Auth.php';
+require_once BASE_PATH . '/src/Officer.php';
 
 // --- LOGIN LOGIC ---
 $username = $_POST['username'] ?? '';
@@ -26,10 +27,22 @@ if ($user) {
     // On successful login
     session_regenerate_id(true);
 
-    // Store user info in the session
+    // Fetch the full officer record to get the organization_id
+    $officerModel = new Officer();
+    $officer = $officerModel->findById($user['officer_id']);
+
+    if (!$officer || !isset($officer['organization_id'])) {
+        // Data integrity issue: user exists but corresponding officer or org_id is missing.
+        error_log("Login Error: User ID {$user['id']} logged in, but officer data (ID: {$user['officer_id']}) is incomplete or missing.");
+        header('Location: index.php?page=login&error=account_data_missing');
+        exit;
+    }
+
+    // Store all required info in the session
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['officer_id'] = $user['officer_id'];
     $_SESSION['username'] = $user['username'];
+    $_SESSION['organization_id'] = $officer['organization_id'];
 
     // Redirect to the dashboard
     header('Location: index.php?page=dashboard');

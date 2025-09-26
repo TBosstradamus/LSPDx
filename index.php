@@ -42,6 +42,8 @@ $pageRoutes = [
     'handle_time_approval',
     'edit_user_roles',
     'handle_edit_user_roles',
+    'handle_add_vehicle',
+    'mailbox',
 ];
 
 $apiRoutes = [
