@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check here for FTO/Admin
+requirePermission('fto_manage_checklists');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Checklist.php';
@@ -25,7 +25,7 @@ require_once BASE_PATH . '/src/Logger.php';
 
 // --- LOGIC ---
 $officerId = $_POST['officer_id'] ?? null;
-$content = $_POST['content'] ?? '';
+$items = $_POST['items'] ?? [];
 $notes = $_POST['notes'] ?? '';
 $ftoId = $_POST['assigned_fto_id'] ?? null;
 
@@ -33,6 +33,24 @@ if (!$officerId) {
     header('Location: index.php?page=checklists&error=update_failed');
     exit;
 }
+
+// Reconstruct the checklist content string from the form data
+$contentLines = [];
+foreach ($items as $item) {
+    $type = $item['type'];
+    $text = $item['text'];
+
+    if ($type === 'task') {
+        $checked = isset($item['checked']) ? 'x' : ' ';
+        $contentLines[] = "- [{$checked}] {$text}";
+    } elseif ($type === 'heading') {
+        $contentLines[] = "# {$text}";
+    } else {
+        $contentLines[] = $text;
+    }
+}
+$content = implode("\n", $contentLines);
+
 
 $checklistModel = new Checklist();
 $success = $checklistModel->update($officerId, $content, $notes, $ftoId);

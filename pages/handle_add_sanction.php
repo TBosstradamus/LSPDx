@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check here for HR
+requirePermission('hr_manage_sanctions');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Sanction.php';

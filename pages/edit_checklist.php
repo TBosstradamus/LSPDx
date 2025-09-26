@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check for FTO/Admin
+requirePermission('fto_manage_checklists');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Checklist.php';
@@ -26,7 +25,6 @@ if (!$officerId) {
 
 $officerModel = new Officer();
 $officer = $officerModel->findById($officerId);
-// For the FTO dropdown, we could filter by officers in the 'Field Training Officer' department in a real scenario
 $ftos = $officerModel->getAll();
 
 $checklistModel = new Checklist();
@@ -37,6 +35,34 @@ if (!$officer || !$checklist) {
     exit;
 }
 
+/**
+ * Parses checklist content into an array of structured items.
+ * @param string $content
+ * @return array
+ */
+function parseChecklistContent($content) {
+    $lines = explode("\n", $content);
+    $items = [];
+    foreach ($lines as $index => $line) {
+        $line = trim($line);
+        if (preg_match('/^- \[([ x])\] (.*)/', $line, $matches)) {
+            $items[] = [
+                'type' => 'task',
+                'checked' => $matches[1] === 'x',
+                'text' => trim($matches[2]),
+                'original_index' => $index
+            ];
+        } elseif (preg_match('/^# (.*)/', $line, $matches)) {
+            $items[] = ['type' => 'heading', 'text' => trim($matches[1]), 'original_index' => $index];
+        } else {
+            $items[] = ['type' => 'text', 'text' => $line, 'original_index' => $index];
+        }
+    }
+    return $items;
+}
+
+$checklistItems = parseChecklistContent($checklist['content']);
+
 $pageTitle = 'Checkliste bearbeiten: ' . htmlspecialchars($officer['firstName'] . ' ' . $officer['lastName']);
 include_once BASE_PATH . '/templates/header.php';
 ?>
@@ -46,8 +72,14 @@ include_once BASE_PATH . '/templates/header.php';
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; margin-bottom: 0.5rem; color: #a0aec0; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border-radius: 0.25rem; background-color: #1a202c; border: 1px solid #4a5568; color: #e2e8f0; box-sizing: border-box; font-family: inherit; }
-    .form-group textarea { min-height: 300px; line-height: 1.6; font-family: 'Courier New', Courier, monospace; }
+    .form-group textarea { min-height: 200px; line-height: 1.6; }
     .form-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
+    .checklist-items { border: 1px solid #4a5568; padding: 1rem; border-radius: 0.25rem; background-color: #1a202c; }
+    .checklist-item { display: flex; align-items: center; margin-bottom: 0.5rem; }
+    .checklist-item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 1rem; }
+    .checklist-item label { color: #e2e8f0; margin: 0; }
+    .checklist-heading { color: #90cdf4; font-size: 1.2rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; border-bottom: 1px solid #4a5568; padding-bottom: 0.25rem; }
+    .checklist-text { color: #a0aec0; margin-bottom: 0.5rem; }
 </style>
 
 <div class="form-container">
@@ -55,14 +87,29 @@ include_once BASE_PATH . '/templates/header.php';
         <input type="hidden" name="officer_id" value="<?php echo $officer['id']; ?>">
 
         <div class="form-group">
-            <label for="content">Checklisten-Inhalt</label>
-            <p style="font-size: 0.9rem; color: #a0aec0; margin-top: -0.5rem; margin-bottom: 0.5rem;">Setzen Sie ein 'x' in die Klammern, um einen Punkt abzuhaken (z.B. `[x]`)</p>
-            <textarea id="content" name="content" required><?php echo htmlspecialchars($checklist['content']); ?></textarea>
+            <label>Checklisten-Inhalt</label>
+            <div class="checklist-items">
+                <?php foreach ($checklistItems as $index => $item): ?>
+                    <input type="hidden" name="items[<?php echo $index; ?>][type]" value="<?php echo $item['type']; ?>">
+                    <input type="hidden" name="items[<?php echo $index; ?>][text]" value="<?php echo htmlspecialchars($item['text']); ?>">
+
+                    <?php if ($item['type'] === 'task'): ?>
+                        <div class="checklist-item">
+                            <input type="checkbox" name="items[<?php echo $index; ?>][checked]" value="1" id="item-<?php echo $index; ?>" <?php echo $item['checked'] ? 'checked' : ''; ?>>
+                            <label for="item-<?php echo $index; ?>"><?php echo htmlspecialchars($item['text']); ?></label>
+                        </div>
+                    <?php elseif ($item['type'] === 'heading'): ?>
+                        <h4 class="checklist-heading"><?php echo htmlspecialchars($item['text']); ?></h4>
+                    <?php else: ?>
+                        <p class="checklist-text"><?php echo htmlspecialchars($item['text']); ?></p>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
         </div>
 
         <div class="form-group">
             <label for="notes">FTO Notizen</label>
-            <textarea id="notes" name="notes"><?php echo htmlspecialchars($checklist['notes']); ?></textarea>
+            <textarea id="notes" name="notes"><?php echo htmlspecialchars($checklist['notes'] ?? ''); ?></textarea>
         </div>
 
         <div class="form-group">

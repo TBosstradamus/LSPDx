@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check for FTO/Admin
+requirePermission('training_manage');
 
 // --- TEMPLATE ---
 $pageTitle = 'Trainings-Modul hinzufügen';

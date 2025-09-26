@@ -83,7 +83,7 @@ include_once BASE_PATH . '/templates/header.php';
             <div class="info-item"><span>Name</span><p><?php echo htmlspecialchars($currentUser['firstName'] . ' ' . $currentUser['lastName']); ?></p></div>
             <div class="info-item"><span>Dienstnummer</span><p><?php echo htmlspecialchars($currentUser['badgeNumber']); ?></p></div>
             <div class="info-item"><span>Rang</span><p><?php echo htmlspecialchars($currentUser['rank']); ?></p></div>
-            <div class="info-item"><span>Telefon</span><p><?php echo htmlspecialchars($currentUser['phoneNumber']); ?></p></div>
+            <div class="info-item"><span>Telefon</span><p><?php echo htmlspecialchars($currentUser['phoneNumber'] ?? ''); ?></p></div>
         </div>
     </div>
 

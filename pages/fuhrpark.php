@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
+requirePermission('fleet_access');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Vehicle.php';

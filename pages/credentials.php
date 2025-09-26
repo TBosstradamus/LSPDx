@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check for Admin/HR Lead
+requirePermission('hr_manage_credentials');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Auth.php';

@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
+requirePermission('hr_access');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';
@@ -87,6 +88,7 @@ include_once BASE_PATH . '/templates/header.php';
                         </td>
                         <td>
                             <a href="index.php?page=edit_officer&id=<?php echo $officer['id']; ?>" class="button button-secondary">Bearbeiten</a>
+                            <a href="index.php?page=edit_user_roles&officer_id=<?php echo $officer['id']; ?>" class="button button-secondary">Rollen</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

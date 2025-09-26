@@ -102,17 +102,22 @@ class Dispatch {
      * @return bool
      */
     public function assignOfficerToVehicle($officerId, $vehicleId, $seatIndex) {
-        // First, remove the officer from any existing assignment to prevent conflicts
-        $this->unassignOfficer($officerId);
-
+        $this->db->beginTransaction();
         try {
+            // First, remove the officer from any existing assignment to prevent conflicts
+            $this->_unassignOfficer($officerId);
+
             $sql = "INSERT INTO vehicle_assignments (vehicle_id, officer_id, seat_index) VALUES (:vehicle_id, :officer_id, :seat_index)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':vehicle_id', $vehicleId, PDO::PARAM_INT);
             $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
             $stmt->bindParam(':seat_index', $seatIndex, PDO::PARAM_INT);
-            return $stmt->execute();
+            $stmt->execute();
+
+            $this->db->commit();
+            return true;
         } catch (PDOException $e) {
+            $this->db->rollBack();
             error_log("Error assigning officer: " . $e->getMessage());
             return false;
         }
@@ -122,47 +127,64 @@ class Dispatch {
      * Removes an officer from any assignment they currently have.
      * @param int $officerId
      */
-    public function unassignOfficer($officerId) {
+    /**
+     * Clears all assignments for a given officer.
+     * This is the public method that should be called from handlers.
+     * @param int $officerId
+     */
+    public function clearOfficerAssignments($officerId) {
         try {
             $this->db->beginTransaction();
-            // Remove from vehicle assignments
-            $sqlVehicle = "DELETE FROM vehicle_assignments WHERE officer_id = :officer_id";
-            $stmtVehicle = $this->db->prepare($sqlVehicle);
-            $stmtVehicle->execute([':officer_id' => $officerId]);
-
-            // Remove from header assignments
-            $sqlHeader = "DELETE FROM header_assignments WHERE officer_id = :officer_id";
-            $stmtHeader = $this->db->prepare($sqlHeader);
-            $stmtHeader->execute([':officer_id' => $officerId]);
-
+            $this->_unassignOfficer($officerId);
             $this->db->commit();
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("Error unassigning officer: " . $e->getMessage());
+            error_log("Error clearing officer assignments: " . $e->getMessage());
         }
     }
 
     /**
-     * Assigns an officer to a header role.
+     * Assigns an officer to a header role. This is now transactional.
      * @param int $officerId
      * @param string $roleName
      * @return bool
      */
     public function assignOfficerToHeader($officerId, $roleName) {
-        $this->unassignOfficer($officerId);
-
+        $this->db->beginTransaction();
         try {
+            $this->_unassignOfficer($officerId);
+
             $sql = "INSERT INTO header_assignments (role_name, officer_id)
                     VALUES (:role_name, :officer_id)
                     ON DUPLICATE KEY UPDATE officer_id = :officer_id";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':role_name', $roleName, PDO::PARAM_STR);
             $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            return $stmt->execute();
+            $stmt->execute();
+
+            $this->db->commit();
+            return true;
         } catch (PDOException $e) {
+            $this->db->rollBack();
             error_log("Error assigning officer to header: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Internal method to unassign an officer. Does not handle transactions.
+     * @param int $officerId
+     */
+    private function _unassignOfficer($officerId) {
+        // Remove from vehicle assignments
+        $sqlVehicle = "DELETE FROM vehicle_assignments WHERE officer_id = :officer_id";
+        $stmtVehicle = $this->db->prepare($sqlVehicle);
+        $stmtVehicle->execute([':officer_id' => $officerId]);
+
+        // Remove from header assignments
+        $sqlHeader = "DELETE FROM header_assignments WHERE officer_id = :officer_id";
+        $stmtHeader = $this->db->prepare($sqlHeader);
+        $stmtHeader->execute([':officer_id' => $officerId]);
     }
 
     private function getHeaderAssignments() {

@@ -36,25 +36,35 @@ class Email {
             ]);
             $emailId = $this->db->lastInsertId();
 
-            // Step 2: Insert 'to' recipients
+            // Step 2: Insert recipients, ensuring uniqueness
             $recipientSql = "INSERT INTO email_recipients (email_id, recipient_id, type) VALUES (:email_id, :recipient_id, :type)";
             $recipientStmt = $this->db->prepare($recipientSql);
 
+            $processedRecipients = [];
+
+            // Process 'to' recipients
             foreach ($recipientIds as $recipientId) {
-                $recipientStmt->execute([
-                    ':email_id' => $emailId,
-                    ':recipient_id' => $recipientId,
-                    ':type' => 'to'
-                ]);
+                if (!isset($processedRecipients[$recipientId])) {
+                    $recipientStmt->execute([
+                        ':email_id' => $emailId,
+                        ':recipient_id' => $recipientId,
+                        ':type' => 'to'
+                    ]);
+                    $processedRecipients[$recipientId] = true;
+                }
             }
 
-            // Step 3: Insert 'cc' recipients
+            // Process 'cc' recipients
             foreach ($ccIds as $ccId) {
-                $recipientStmt->execute([
-                    ':email_id' => $emailId,
-                    ':recipient_id' => $ccId,
-                    ':type' => 'cc'
-                ]);
+                // Only add if not already a 'to' recipient
+                if (!isset($processedRecipients[$ccId])) {
+                    $recipientStmt->execute([
+                        ':email_id' => $emailId,
+                        ':recipient_id' => $ccId,
+                        ':type' => 'cc'
+                    ]);
+                    $processedRecipients[$ccId] = true;
+                }
             }
 
             $this->db->commit();

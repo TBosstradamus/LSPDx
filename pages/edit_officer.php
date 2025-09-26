@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check
+requirePermission('hr_manage_officers');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';
@@ -73,7 +72,7 @@ include_once BASE_PATH . '/templates/header.php';
             </div>
             <div class="form-group">
                 <label for="phoneNumber">Telefonnummer</label>
-                <input type="text" id="phoneNumber" name="phoneNumber" value="<?php echo htmlspecialchars($officer['phoneNumber']); ?>">
+                <input type="text" id="phoneNumber" name="phoneNumber" value="<?php echo htmlspecialchars($officer['phoneNumber'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label for="rank">Rang</label>

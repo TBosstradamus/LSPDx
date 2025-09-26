@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check for Admin
+requirePermission('logs_access');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Logger.php';
