@@ -23,7 +23,11 @@ class Auth {
      */
     public function login($username, $password) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username");
+            $sql = "SELECT u.*, o.organization_id
+                    FROM users u
+                    LEFT JOIN officers o ON u.officer_id = o.id
+                    WHERE u.username = :username";
+            $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':username', $username);
             $stmt->execute();
 

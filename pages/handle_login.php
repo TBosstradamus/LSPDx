@@ -30,6 +30,7 @@ if ($user) {
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['officer_id'] = $user['officer_id'];
     $_SESSION['username'] = $user['username'];
+    $_SESSION['organization_id'] = $user['organization_id'];
 
     // Redirect to the dashboard
     header('Location: index.php?page=dashboard');
