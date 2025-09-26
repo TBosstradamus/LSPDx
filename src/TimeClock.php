@@ -9,85 +9,49 @@ require_once __DIR__ . '/Database.php';
 
 class TimeClock {
     private $db;
+    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
-    }
-
-    /**
-     * Gets the current clock-in status for a specific officer.
-     * @param int $officerId
-     * @return array|false The active clock-in record or false if not clocked in.
-     */
-    public function getCurrentStatus($officerId) {
-        try {
-            $sql = "SELECT * FROM time_tracking WHERE officer_id = :officer_id AND clockOutTime IS NULL ORDER BY clockInTime DESC LIMIT 1";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error getting clock status: " . $e->getMessage());
-            return false;
+        if (isset($_SESSION['organization_id'])) {
+            $this->organization_id = $_SESSION['organization_id'];
+        } else {
+            die("Fehler: Organisations-ID nicht gefunden.");
         }
     }
 
-    /**
-     * Clocks in an officer.
-     * @param int $officerId
-     * @return bool
-     */
+    public function getCurrentStatus($officerId) {
+        $stmt = $this->db->prepare("SELECT * FROM time_tracking WHERE officer_id = ? AND clockOutTime IS NULL ORDER BY clockInTime DESC LIMIT 1");
+        $stmt->execute([$officerId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function clockIn($officerId) {
-        // Prevent clocking in if already clocked in
         if ($this->getCurrentStatus($officerId)) {
             return false;
         }
-
-        try {
-            $sql = "INSERT INTO time_tracking (officer_id, clockInTime) VALUES (:officer_id, NOW())";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            error_log("Error clocking in: " . $e->getMessage());
-            return false;
-        }
+        $stmt = $this->db->prepare("INSERT INTO time_tracking (organization_id, officer_id, clockInTime) VALUES (?, ?, NOW())");
+        return $stmt->execute([$this->organization_id, $officerId]);
     }
 
-    /**
-     * Clocks out an officer and updates their total hours.
-     * @param int $officerId
-     * @param int $clockInRecordId The ID of the time_tracking record to close.
-     * @return bool
-     */
     public function clockOut($officerId, $clockInRecordId) {
         $this->db->beginTransaction();
         try {
-            // Step 1: Update the clock-out time and duration in time_tracking
-            $sql = "UPDATE time_tracking
-                    SET clockOutTime = NOW(),
-                        duration = TIMESTAMPDIFF(SECOND, clockInTime, NOW())
-                    WHERE id = :id AND officer_id = :officer_id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':id', $clockInRecordId, PDO::PARAM_INT);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $stmt->execute();
+            $updateSql = "UPDATE time_tracking
+                          SET clockOutTime = NOW(),
+                              duration = TIMESTAMPDIFF(SECOND, clockInTime, NOW())
+                          WHERE id = ? AND officer_id = ? AND organization_id = ?";
+            $stmt = $this->db->prepare($updateSql);
+            $stmt->execute([$clockInRecordId, $officerId, $this->organization_id]);
 
-            // Get the duration of the just-ended session
-            $durationStmt = $this->db->prepare("SELECT duration FROM time_tracking WHERE id = :id");
-            $durationStmt->execute([':id' => $clockInRecordId]);
+            $durationStmt = $this->db->prepare("SELECT duration FROM time_tracking WHERE id = ?");
+            $durationStmt->execute([$clockInRecordId]);
             $sessionDuration = $durationStmt->fetchColumn();
 
-            if ($sessionDuration === false) {
-                throw new Exception("Could not retrieve session duration.");
-            }
+            if ($sessionDuration === false) throw new Exception("Could not retrieve session duration.");
 
-            // Step 2: Update the totalHours in the officers table
-            $updateHoursSql = "UPDATE officers SET totalHours = totalHours + :duration WHERE id = :officer_id";
-            $updateStmt = $this->db->prepare($updateHoursSql);
-            $updateStmt->bindParam(':duration', $sessionDuration, PDO::PARAM_INT);
-            $updateStmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $updateStmt->execute();
+            $officerStmt = $this->db->prepare("UPDATE officers SET totalHours = totalHours + ? WHERE id = ?");
+            $officerStmt->execute([$sessionDuration, $officerId]);
 
             $this->db->commit();
             return true;
@@ -96,6 +60,16 @@ class TimeClock {
             error_log("Error clocking out: " . $e->getMessage());
             return false;
         }
+    }
+
+    public function pause($timeTrackingId) {
+        $stmt = $this->db->prepare("UPDATE time_tracking SET is_paused = TRUE WHERE id = ? AND organization_id = ?");
+        return $stmt->execute([$timeTrackingId, $this->organization_id]);
+    }
+
+    public function resume($timeTrackingId) {
+        $stmt = $this->db->prepare("UPDATE time_tracking SET is_paused = FALSE WHERE id = ? AND organization_id = ?");
+        return $stmt->execute([$timeTrackingId, $this->organization_id]);
     }
 }
 ?>

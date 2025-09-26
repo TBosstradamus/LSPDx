@@ -23,8 +23,12 @@ class Auth {
      */
     public function login($username, $password) {
         try {
-            // Prepare a statement to find the user by username
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username");
+            // Prepare a statement to find the user and their organization
+            $sql = "SELECT u.*, o.organization_id
+                    FROM users u
+                    JOIN officers o ON u.officer_id = o.id
+                    WHERE u.username = :username";
+            $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':username', $username);
             $stmt->execute();
 

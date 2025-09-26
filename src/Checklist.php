@@ -9,15 +9,17 @@ require_once __DIR__ . '/Database.php';
 
 class Checklist {
     private $db;
+    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
+        if (isset($_SESSION['organization_id'])) {
+            $this->organization_id = $_SESSION['organization_id'];
+        } else {
+            die("Fehler: Organisations-ID nicht gefunden.");
+        }
     }
 
-    /**
-     * Gets all officers with their checklist status and assigned FTO.
-     * @return array
-     */
     public function getAllChecklistsWithOfficerData() {
         try {
             $sql = "SELECT
@@ -27,8 +29,10 @@ class Checklist {
                     FROM officers o
                     LEFT JOIN officer_checklists c ON o.id = c.officer_id
                     LEFT JOIN officers fto ON c.assigned_fto_id = fto.id
+                    WHERE o.organization_id = ?
                     ORDER BY o.lastName, o.firstName";
-            $stmt = $this->db->query($sql);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching checklists: " . $e->getMessage());
@@ -36,40 +40,34 @@ class Checklist {
         }
     }
 
-    /**
-     * Gets a single checklist for a specific officer.
-     * If it doesn't exist, it creates one from the template.
-     * @param int $officerId
-     * @return array|false
-     */
     public function getForOfficer($officerId) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM officer_checklists WHERE officer_id = :officer_id");
-            $stmt->execute([':officer_id' => $officerId]);
+            // First, ensure the officer belongs to the current organization
+            $officerCheckStmt = $this->db->prepare("SELECT id FROM officers WHERE id = ? AND organization_id = ?");
+            $officerCheckStmt->execute([$officerId, $this->organization_id]);
+            if ($officerCheckStmt->fetch() === false) {
+                return false; // Officer not found in this organization
+            }
+
+            $stmt = $this->db->prepare("SELECT * FROM officer_checklists WHERE officer_id = ?");
+            $stmt->execute([$officerId]);
             $checklist = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$checklist) {
-                // Checklist does not exist, create one from template
                 $template = $this->getTemplate();
-                $sql = "INSERT INTO officer_checklists (officer_id, content) VALUES (:officer_id, :content)";
+                $sql = "INSERT INTO officer_checklists (officer_id, content) VALUES (?, ?)";
                 $createStmt = $this->db->prepare($sql);
-                $createStmt->execute([':officer_id' => $officerId, ':content' => $template]);
-                // Fetch the newly created checklist
-                $stmt->execute([':officer_id' => $officerId]);
+                $createStmt->execute([$officerId, $template]);
+                $stmt->execute([$officerId]);
                 $checklist = $stmt->fetch(PDO::FETCH_ASSOC);
             }
             return $checklist;
-
         } catch (PDOException $e) {
             error_log("Error getting checklist for officer: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Gets the global checklist template from the settings table.
-     * @return string
-     */
     public function getTemplate() {
         try {
             $stmt = $this->db->prepare("SELECT setting_value FROM settings WHERE setting_key = 'checklist_template'");
@@ -81,25 +79,20 @@ class Checklist {
         }
     }
 
-    /**
-     * Updates the content and notes for a specific officer's checklist.
-     * @param int $officerId
-     * @param string $content
-     * @param string $notes
-     * @param int $ftoId
-     * @return bool
-     */
     public function update($officerId, $content, $notes, $ftoId) {
         try {
+            // Ensure the officer to be updated is in the correct organization
+            $officerCheckStmt = $this->db->prepare("SELECT id FROM officers WHERE id = ? AND organization_id = ?");
+            $officerCheckStmt->execute([$officerId, $this->organization_id]);
+            if ($officerCheckStmt->fetch() === false) {
+                return false;
+            }
+
             $sql = "INSERT INTO officer_checklists (officer_id, content, notes, assigned_fto_id)
-                    VALUES (:officer_id, :content, :notes, :assigned_fto_id)
-                    ON DUPLICATE KEY UPDATE content = :content, notes = :notes, assigned_fto_id = :assigned_fto_id";
+                    VALUES (?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE content = VALUES(content), notes = VALUES(notes), assigned_fto_id = VALUES(assigned_fto_id)";
             $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $stmt->bindParam(':content', $content, PDO::PARAM_STR);
-            $stmt->bindParam(':notes', $notes, PDO::PARAM_STR);
-            $stmt->bindParam(':assigned_fto_id', $ftoId, PDO::PARAM_INT);
-            return $stmt->execute();
+            return $stmt->execute([$officerId, $content, $notes, $ftoId]);
         } catch (PDOException $e) {
             error_log("Error updating checklist: " . $e->getMessage());
             return false;

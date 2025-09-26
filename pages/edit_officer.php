@@ -91,6 +91,13 @@ include_once BASE_PATH . '/templates/header.php';
                     <option value="female" <?php echo ($officer['gender'] === 'female') ? 'selected' : ''; ?>>Weiblich</option>
                 </select>
             </div>
+
+            <?php if ($officer['organization_id'] == 2): // Show only for FIB (ID 2 is default for FIB) ?>
+            <div class="form-group">
+                <label for="display_name">Agentenname (Display Name)</label>
+                <input type="text" id="display_name" name="display_name" value="<?php echo htmlspecialchars($officer['display_name'] ?? ''); ?>">
+            </div>
+            <?php endif; ?>
              <div class="form-group">
                 <label for="isActive">Status</label>
                 <select id="isActive" name="isActive" required>

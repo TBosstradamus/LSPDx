@@ -1,10 +1,21 @@
 -- LSPD Management Application
 -- Database Setup Script
--- Version 1.1
+-- Version 3.1 - Fully Multi-Organization Schema
 
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
+
+--
+-- Table structure for table `organizations`
+--
+DROP TABLE IF EXISTS `organizations`;
+CREATE TABLE `organizations` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL UNIQUE,
+  `short_name` VARCHAR(10) NOT NULL UNIQUE,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Table structure for table `officers`
@@ -12,19 +23,24 @@ SET foreign_key_checks = 0;
 DROP TABLE IF EXISTS `officers`;
 CREATE TABLE `officers` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `badgeNumber` VARCHAR(20) NOT NULL UNIQUE,
+  `organization_id` INT NOT NULL,
+  `badgeNumber` VARCHAR(20) NOT NULL,
   `firstName` VARCHAR(50) NOT NULL,
   `lastName` VARCHAR(50) NOT NULL,
+  `display_name` VARCHAR(100) DEFAULT NULL,
   `phoneNumber` VARCHAR(50) DEFAULT NULL,
   `gender` ENUM('male', 'female') NOT NULL,
   `rank` VARCHAR(50) NOT NULL,
   `totalHours` INT NOT NULL DEFAULT 0,
   `isActive` BOOLEAN NOT NULL DEFAULT TRUE,
-  PRIMARY KEY (`id`)
+  `last_assignment_time` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `org_badge` (`organization_id`, `badgeNumber`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Table structure for table `users` (for login)
+-- Table structure for table `users`
 --
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
@@ -38,130 +54,58 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Table structure for table `departments`
---
-DROP TABLE IF EXISTS `departments`;
-CREATE TABLE `departments` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL UNIQUE,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Junction table for `officer_departments`
---
-DROP TABLE IF EXISTS `officer_departments`;
-CREATE TABLE `officer_departments` (
-  `officer_id` INT NOT NULL,
-  `department_id` INT NOT NULL,
-  PRIMARY KEY (`officer_id`, `department_id`),
-  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Table structure for table `licenses`
---
-DROP TABLE IF EXISTS `licenses`;
-CREATE TABLE `licenses` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL UNIQUE,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Junction table for `officer_licenses`
---
-DROP TABLE IF EXISTS `officer_licenses`;
-CREATE TABLE `officer_licenses` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `officer_id` INT NOT NULL,
-  `license_id` INT NOT NULL,
-  `issuedBy` VARCHAR(100) NOT NULL,
-  `issuedAt` DATE NOT NULL,
-  `expiresAt` DATE NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`license_id`) REFERENCES `licenses`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Table structure for table `vehicles` (Master Fleet)
+-- Table structure for table `vehicles`
 --
 DROP TABLE IF EXISTS `vehicles`;
 CREATE TABLE `vehicles` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `organization_id` INT NOT NULL,
   `name` VARCHAR(100) NOT NULL,
   `category` VARCHAR(50) NOT NULL,
   `capacity` INT NOT NULL,
-  `licensePlate` VARCHAR(20) NOT NULL UNIQUE,
+  `licensePlate` VARCHAR(20) NOT NULL,
   `mileage` INT NOT NULL,
-  `lastMileage` INT DEFAULT NULL,
-  `lastCheckup` DATE DEFAULT NULL,
-  `nextCheckup` DATE DEFAULT NULL,
   `on_duty` BOOLEAN NOT NULL DEFAULT FALSE,
   `current_status` INT DEFAULT NULL,
   `current_funk` VARCHAR(50) DEFAULT NULL,
   `current_callsign` VARCHAR(50) DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `org_license_plate` (`organization_id`, `licensePlate`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Table structure for `vehicle_assignments` (real-time seat assignments)
+-- Table structure for `dispatch_assignments` (Unified)
 --
-DROP TABLE IF EXISTS `vehicle_assignments`;
-CREATE TABLE `vehicle_assignments` (
-  `vehicle_id` INT NOT NULL,
-  `officer_id` INT NOT NULL,
-  `seat_index` INT NOT NULL,
-  PRIMARY KEY (`vehicle_id`, `seat_index`),
-  UNIQUE KEY `officer_id_unique` (`officer_id`),
-  FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
+DROP TABLE IF EXISTS `dispatch_assignments`;
+CREATE TABLE `dispatch_assignments` (
+    `organization_id` INT NOT NULL,
+    `officer_id` INT NOT NULL,
+    `assignment_type` ENUM('vehicle', 'header', 'activity') NOT NULL,
+    `assignment_id` VARCHAR(50) NOT NULL, -- vehicle_id, role_name, or activity_name
+    `seat_index` INT DEFAULT NULL, -- Only for vehicles
+    `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`organization_id`, `officer_id`),
+    FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Table structure for `header_assignments` (real-time header roles)
---
-DROP TABLE IF EXISTS `header_assignments`;
-CREATE TABLE `header_assignments` (
-  `role_name` VARCHAR(50) NOT NULL,
-  `officer_id` INT NOT NULL,
-  PRIMARY KEY (`role_name`),
-  UNIQUE KEY `officer_id_unique` (`officer_id`),
-  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Table structure for table `sanctions`
+-- Table structure for `sanctions`
 --
 DROP TABLE IF EXISTS `sanctions`;
 CREATE TABLE `sanctions` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `organization_id` INT NOT NULL,
   `officer_id` INT NOT NULL,
   `issued_by_officer_id` INT NOT NULL,
   `sanctionType` VARCHAR(50) NOT NULL,
   `reason` TEXT NOT NULL,
   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`issued_by_officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Table structure for table `it_logs`
---
-DROP TABLE IF EXISTS `it_logs`;
-CREATE TABLE `it_logs` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `actor_id` INT,
-  `eventType` VARCHAR(50) NOT NULL,
-  `details` TEXT NOT NULL,
-  `category` VARCHAR(50) NOT NULL,
-  `meta` JSON DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`actor_id`) REFERENCES `officers`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -171,12 +115,13 @@ DROP TABLE IF EXISTS `time_tracking`;
 CREATE TABLE `time_tracking` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `officer_id` INT NOT NULL,
+  `organization_id` INT NOT NULL,
   `clockInTime` TIMESTAMP NOT NULL,
   `clockOutTime` TIMESTAMP NULL,
-  `duration` INT DEFAULT NULL, -- in seconds
-  `is_paused` BOOLEAN NOT NULL DEFAULT FALSE,
+  `duration` INT DEFAULT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -186,36 +131,36 @@ DROP TABLE IF EXISTS `time_pause_log`;
 CREATE TABLE `time_pause_log` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `officer_id` INT NOT NULL,
+  `organization_id` INT NOT NULL,
+  `time_tracking_id` INT NOT NULL,
   `pause_start_time` TIMESTAMP NOT NULL,
   `pause_end_time` TIMESTAMP NULL,
-  `duration` INT, -- in seconds
+  `duration` INT,
   `reason` VARCHAR(255) NOT NULL,
   `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
   `reviewed_by_id` INT,
   `reviewed_at` TIMESTAMP NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`time_tracking_id`) REFERENCES `time_tracking`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`reviewed_by_id`) REFERENCES `officers`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Inserting default data
---
-INSERT INTO `departments` (`name`) VALUES ('LSPD'), ('Personalabteilung'), ('Leitung Personalabteilung'), ('Field Training Officer'), ('Leitung Field Training Officer'), ('Fuhrparkmanager'), ('Interne Revision'), ('Internal Affairs'), ('Admin');
-INSERT INTO `licenses` (`name`) VALUES ('Führerschein Klasse B'), ('Waffenschein'), ('Erste-Hilfe-Zertifikat'), ('Pilotenschein Klasse A'), ('Interne Mitführlizenz für Langwaffen');
-
---
--- Table structure for table `documents`
+-- Table structure for `documents`
 --
 DROP TABLE IF EXISTS `documents`;
 CREATE TABLE `documents` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `organization_id` INT NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `content` MEDIUMTEXT NOT NULL,
   `created_by_id` INT,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`created_by_id`) REFERENCES `officers`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -225,12 +170,14 @@ CREATE TABLE `documents` (
 DROP TABLE IF EXISTS `training_modules`;
 CREATE TABLE `training_modules` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `organization_id` INT NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `content` MEDIUMTEXT NOT NULL,
   `created_by_id` INT,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`created_by_id`) REFERENCES `officers`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -249,36 +196,19 @@ CREATE TABLE `officer_checklists` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Table structure for table `settings`
---
-DROP TABLE IF EXISTS `settings`;
-CREATE TABLE `settings` (
-  `setting_key` VARCHAR(50) NOT NULL,
-  `setting_value` TEXT,
-  PRIMARY KEY (`setting_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Insert default checklist template
-INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('checklist_template', '# Allgemeine Checkliste\n- [ ] Ausrüstung geprüft\n- [ ] Fahrzeug-Check durchgeführt\n- [ ] Status im Funk gemeldet\n\n# Verhalten im Dienst\n- [ ] Respektvoller Umgang mit Bürgern\n- [ ] Einhaltung der StVO\n\n# Nach dem Dienst\n- [ ] Bericht geschrieben\n- [ ] Ausrüstung abgegeben');
-
--- Insert callsign data as JSON
-INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('callsign_data', '{"general":[{"code":"10-01","meaning":"Dienst Antritt"},{"code":"10-02","meaning":"Dienst Austritt"},{"code":"10-03","meaning":"Funkcheck"},{"code":"10-04","meaning":"Information verstanden"},{"code":"10-09","meaning":"Funkspruch"},{"code":"10-15","meaning":"Verdächtiger in Gewahrsam"},{"code":"10-17","meaning":"Rückkehr zum Department mit TV"},{"code":"10-19","meaning":"Rückkehr"},{"code":"10-20","meaning":"Aktuelle Position"},{"code":"10-22","meaning":"Abholung benötigt"},{"code":"10-28","meaning":"Aktueller Status"},{"code":"10-33","meaning":"Verunfallt"},{"code":"10-60","meaning":"Aktive Verkehrskontrolle"},{"code":"10-78","meaning":"Dringend Verstärkung benötigt"},{"code":"10-79","meaning":"Request Air Support"},{"code":"10-80","meaning":"Aktive Verfolgungsjagd"},{"code":"10-90","meaning":"Officer in Bedrängnis"},{"code":"11-99","meaning":"Officer unter starkem Beschuss (äußerster Notfall)"},{"code":"Shots fired","meaning":"Schüsse abgegeben oder gefallen"},{"code":"Security Check","meaning":"Frage von Duspatch ob alles in Ordnung ist"}],"status":[{"code":"Code 0","meaning":"Gamecrash / Kopfschmerzen"},{"code":"Code 1","meaning":"Einsatzbereit / Streifenfahrt"},{"code":"Code 2","meaning":"Anfahrt ohne Sonderrechte"},{"code":"Code 3","meaning":"Anfahrt mit Sonderrechte"},{"code":"Code 4","meaning":"Keine weiteren Einheiten benötigt"},{"code":"Code 5","meaning":"Stand-By"},{"code":"Code 6","meaning":"Pause"},{"code":"Code 7","meaning":"Shots Fired"}],"unit":[{"code":"Sam","meaning":"Einzelstreife"},{"code":"Adam","meaning":"Doppeltstreife"},{"code":"Paul","meaning":"Sergent Streife"},{"code":"Metro","meaning":"SWAT Streife"},{"code":"Air","meaning":"Overwatch"},{"code":"David","meaning":"Detective Streife"},{"code":"Motor","meaning":"Motorradeinheit"},{"code":"Tom","meaning":"Traffic Division"}]}');
-
--- Insert funk channels as JSON
-INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES ('funk_channels', '["PD 1.1", "PD 1.2", "PD 2.1", "PD 2.2", "FIB 4.1", "USMS 6.1", "LSMD 8.1", "DOJ 11.1"]');
-
---
 -- Table structure for table `emails`
 --
 DROP TABLE IF EXISTS `emails`;
 CREATE TABLE `emails` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `organization_id` INT NOT NULL,
   `sender_id` INT,
   `subject` VARCHAR(255) NOT NULL,
   `body` TEXT NOT NULL,
   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `status` ENUM('sent', 'draft') NOT NULL DEFAULT 'sent',
   PRIMARY KEY (`id`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`sender_id`) REFERENCES `officers`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -300,30 +230,26 @@ CREATE TABLE `email_recipients` (
   FOREIGN KEY (`recipient_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 --
--- Create default admin user
---
-INSERT INTO `officers` (`id`, `badgeNumber`, `firstName`, `lastName`, `gender`, `rank`, `isActive`) VALUES (1, '001', 'Admin', 'User', 'male', 'Chief of Police', 1);
--- The password is 'password'. A bcrypt hash for this is generated here.
-INSERT INTO `users` (`officer_id`, `username`, `password_hash`) VALUES (1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
-
---
--- Table structure for roles and permissions
+-- Table structure for `roles` and `permissions`
 --
 DROP TABLE IF EXISTS `roles`;
 CREATE TABLE `roles` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(50) NOT NULL UNIQUE,
+  `organization_id` INT NOT NULL,
+  `name` VARCHAR(50) NOT NULL,
   `description` VARCHAR(255),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `org_role_name` (`organization_id`, `name`),
+  FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `permissions`;
 CREATE TABLE `permissions` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(50) NOT NULL UNIQUE,
+  `name` VARCHAR(100) NOT NULL UNIQUE,
   `description` VARCHAR(255),
+  `category` VARCHAR(50) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -346,69 +272,59 @@ CREATE TABLE `user_roles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Insert default roles and permissions
+-- Table structure for table `organization_sharing`
 --
-INSERT INTO `roles` (`id`, `name`, `description`) VALUES
-(1, 'Admin', 'Vollzugriff auf alle Systembereiche'),
-(2, 'FTO', 'Zugriff auf FTO-Checklisten und Trainings-Module'),
-(3, 'Personalabteilung', 'Zugriff auf HR-Funktionen wie Beamtenverwaltung und Sanktionen'),
-(4, 'Fuhrparkmanager', 'Zugriff auf die Verwaltung der Fahrzeug-Stammdaten'),
-(5, 'Beamter', 'Standard-Zugriff auf eigene Daten und Dispatch');
-
--- Assign default admin user to the 'Admin' role
-INSERT INTO `user_roles` (`officer_id`, `role_id`) VALUES (1, 1);
-
---
--- Insert Permissions
---
-INSERT INTO `permissions` (`id`, `name`, `description`) VALUES
-(1, 'admin_area_access', 'Voller Zugriff auf alle administrativen Funktionen'),
-(2, 'dispatch_access', 'Zugriff auf das Dispatch Board'),
-(3, 'hr_access', 'Zugriff auf den Personalbereich'),
-(4, 'hr_manage_officers', 'Kann Beamte hinzufügen und bearbeiten'),
-(5, 'hr_manage_roles', 'Kann Benutzern Rollen zuweisen'),
-(6, 'hr_manage_sanctions', 'Kann Sanktionen verhängen'),
-(7, 'hr_manage_credentials', 'Kann Passwörter zurücksetzen'),
-(8, 'fleet_access', 'Zugriff auf die Fuhrpark-Stammdaten'),
-(9, 'fleet_manage', 'Kann Fahrzeuge hinzufügen, bearbeiten und löschen'),
-(10, 'fleet_duty_manage', 'Kann Fahrzeuge in den Dienst stellen'),
-(11, 'fto_access', 'Zugriff auf den FTO-Bereich'),
-(12, 'fto_manage_checklists', 'Kann Checklisten bearbeiten und zuweisen'),
-(13, 'training_access', 'Zugriff auf Trainings-Module'),
-(14, 'training_manage', 'Kann Trainings-Module erstellen und löschen'),
-(15, 'documents_access', 'Zugriff auf Dokumente'),
-(16, 'documents_manage', 'Kann Dokumente erstellen und löschen'),
-(17, 'logs_access', 'Zugriff auf die IT-Systemprotokolle');
-
---
--- Assign Permissions to Roles
---
--- Admin (Role 1) gets all permissions
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) SELECT 1, id FROM permissions;
-
--- Personalabteilung (Role 3)
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (3, 3), (3, 4), (3, 6);
-
--- FTO (Role 2)
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (2, 11), (2, 12);
-
--- Fuhrparkmanager (Role 4)
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (4, 8), (4, 9), (4, 10);
-
--- Beamter (Role 5) gets basic access
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (5, 2), (5, 13), (5, 15);
-
---
--- Table structure for table `activity_assignments`
---
-DROP TABLE IF EXISTS `activity_assignments`;
-CREATE TABLE `activity_assignments` (
-  `officer_id` INT NOT NULL,
-  `activity_name` VARCHAR(100) NOT NULL,
-  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`officer_id`),
-  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE
+DROP TABLE IF EXISTS `organization_sharing`;
+CREATE TABLE `organization_sharing` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `source_org_id` INT NOT NULL,
+  `target_org_id` INT NOT NULL,
+  `data_type` VARCHAR(50) NOT NULL,
+  `can_access` BOOLEAN NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `sharing_rule` (`source_org_id`, `target_org_id`, `data_type`),
+  FOREIGN KEY (`source_org_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`target_org_id`) REFERENCES `organizations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Default Data Insertion
+--
+INSERT INTO `organizations` (`id`, `name`, `short_name`) VALUES (1, 'Los Santos Police Department', 'LSPD'), (2, 'Federal Investigation Bureau', 'FIB'), (3, 'US Marshals Service', 'USMS'), (4, 'Department of Justice', 'DOJ');
+
+INSERT INTO `officers` (`id`, `organization_id`, `badgeNumber`, `firstName`, `lastName`, `gender`, `rank`, `isActive`) VALUES (1, 1, '001', 'Admin', 'User', 'male', 'Chief of Police', 1);
+INSERT INTO `users` (`officer_id`, `username`, `password_hash`) VALUES (1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
+
+INSERT INTO `roles` (`id`, `organization_id`, `name`, `description`) VALUES
+(1, 1, 'Admin', 'Vollzugriff auf alle Systembereiche'),
+(2, 1, 'FTO', 'Zugriff auf FTO-Checklisten'),
+(3, 1, 'Personalabteilung', 'Zugriff auf HR-Funktionen'),
+(4, 1, 'Fuhrparkmanager', 'Zugriff auf die Fahrzeug-Stammdaten'),
+(5, 1, 'Beamter', 'Standard-Zugriff');
+
+INSERT INTO `user_roles` (`officer_id`, `role_id`) VALUES (1, 1);
+
+INSERT INTO `permissions` (`id`, `name`, `description`, `category`) VALUES
+(1, 'dispatch_view', 'Darf das Dispatch Board sehen', 'Dispatch'),
+(2, 'dispatch_manage', 'Darf Einheiten im Dispatch zuweisen', 'Dispatch'),
+(3, 'hr_view', 'Darf den Personalbereich sehen', 'Personal'),
+(4, 'hr_officers_manage', 'Darf Beamte erstellen, bearbeiten, Rollen zuweisen', 'Personal'),
+(5, 'hr_sanctions_manage', 'Darf Sanktionen verhängen', 'Personal'),
+(6, 'hr_credentials_manage', 'Darf Passwörter zurücksetzen', 'Personal'),
+(7, 'hr_time_approve', 'Darf pausierte Dienstzeiten genehmigen', 'Personal'),
+(8, 'fleet_view', 'Darf die Fahrzeug-Stammdaten sehen', 'Fuhrpark'),
+(9, 'fleet_manage', 'Darf Fahrzeuge bearbeiten/erstellen/löschen', 'Fuhrpark'),
+(10, 'fleet_duty_manage', 'Darf Fahrzeuge in den Dienst stellen', 'Fuhrpark'),
+(11, 'fto_view', 'Darf den FTO-Bereich sehen', 'FTO'),
+(12, 'fto_checklists_manage', 'Darf FTO-Checklisten bearbeiten', 'FTO'),
+(13, 'system_logs_view', 'Darf IT-Systemprotokolle einsehen', 'System'),
+(14, 'system_org_manage', 'Darf Organisationen und Freigaben verwalten', 'System'),
+(15, 'system_rights_manage', 'Darf Rollen und Berechtigungen verwalten', 'System');
+
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) SELECT 1, id FROM permissions;
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (2, 11), (2, 12);
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (3, 3), (3, 4), (3, 5), (3, 6), (3, 7);
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (4, 8), (4, 9), (4, 10);
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (5, 1);
 
 SET foreign_key_checks = 1;

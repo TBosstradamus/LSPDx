@@ -58,9 +58,17 @@ $pageGroups = [
                 <?php endif; ?>
 
                 <!-- Group 3: System -->
-                <?php if (hasPermission('logs_access')): ?>
+                <?php if (hasPermission('logs_access') || hasPermission('system_org_manage')): ?>
                     <h3 class="nav-heading">System</h3>
-                    <a href="index.php?page=it_logs" class="<?php echo ($currentPage === 'it_logs') ? 'active' : ''; ?>">IT-Protokolle</a>
+                    <?php if (hasPermission('logs_access')): ?>
+                        <a href="index.php?page=it_logs" class="<?php echo ($currentPage === 'it_logs') ? 'active' : ''; ?>">IT-Protokolle</a>
+                    <?php endif; ?>
+                    <?php if (hasPermission('system_org_manage')): ?>
+                        <a href="index.php?page=system_org_settings" class="<?php echo ($currentPage === 'system_org_settings') ? 'active' : ''; ?>">Organisations-Verwaltung</a>
+                    <?php endif; ?>
+                    <?php if (hasPermission('system_rights_manage')): ?>
+                        <a href="index.php?page=system_rights_management" class="<?php echo ($currentPage === 'system_rights_management') ? 'active' : ''; ?>">Rollen & Berechtigungen</a>
+                    <?php endif; ?>
                 <?php endif; ?>
             </nav>
             <a href="index.php?page=logout" class="logout-link">Abmelden</a>
