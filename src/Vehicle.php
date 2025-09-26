@@ -9,18 +9,27 @@ require_once __DIR__ . '/Database.php';
 
 class Vehicle {
     private $db;
+    private $organization_id;
 
-    public function __construct() {
+    public function __construct($organization_id) {
         $this->db = Database::getInstance()->getConnection();
+        if (empty($organization_id)) {
+            throw new InvalidArgumentException("Organization ID must be provided for Vehicle model.");
+        }
+        $this->organization_id = $organization_id;
     }
 
-    /**
-     * Fetches all vehicles from the master fleet.
-     * @return array An array of all vehicles.
-     */
+    private function checkOrgId() {
+        if (!$this->organization_id) {
+            throw new Exception("Organization ID is not set for Vehicle model.");
+        }
+    }
+
     public function getAll() {
+        $this->checkOrgId();
         try {
-            $stmt = $this->db->query("SELECT * FROM vehicles ORDER BY category, name");
+            $stmt = $this->db->prepare("SELECT * FROM vehicles WHERE organization_id = ? ORDER BY name");
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching vehicles: " . $e->getMessage());
@@ -28,15 +37,11 @@ class Vehicle {
         }
     }
 
-    /**
-     * Fetches a single vehicle by its ID.
-     * @param int $id The ID of the vehicle.
-     * @return array|false The vehicle's data or false if not found.
-     */
     public function findById($id) {
+        $this->checkOrgId();
         try {
-            $stmt = $this->db->prepare("SELECT * FROM vehicles WHERE id = ?");
-            $stmt->execute([$id]);
+            $stmt = $this->db->prepare("SELECT * FROM vehicles WHERE id = ? AND organization_id = ?");
+            $stmt->execute([$id, $this->organization_id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error finding vehicle by ID: " . $e->getMessage());
@@ -44,27 +49,24 @@ class Vehicle {
         }
     }
 
-    /**
-     * Creates a new vehicle in the master fleet.
-     * @param array $data
-     * @return int|false The ID of the new vehicle or false on failure.
-     */
     public function create($data) {
-        if (empty($data['name']) || empty($data['category']) || empty($data['capacity']) || empty($data['licensePlate'])) {
+        $this->checkOrgId();
+        if (empty($data['name']) || empty($data['category']) || empty($data['licensePlate'])) {
             return false;
         }
 
         try {
-            $sql = "INSERT INTO vehicles (name, category, capacity, licensePlate, mileage)
-                    VALUES (?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO vehicles (organization_id, name, category, capacity, licensePlate, mileage)
+                    VALUES (?, ?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
+                $this->organization_id,
                 $data['name'],
                 $data['category'],
-                $data['capacity'],
+                (int)$data['capacity'],
                 $data['licensePlate'],
-                $data['mileage']
+                (int)$data['mileage']
             ]);
             return $this->db->lastInsertId();
         } catch (PDOException $e) {
@@ -73,30 +75,26 @@ class Vehicle {
         }
     }
 
-    /**
-     * Updates a vehicle's master data.
-     * @param int $id
-     * @param array $data
-     * @return bool
-     */
     public function update($id, $data) {
-        if (empty($id) || empty($data['name']) || empty($data['category']) || empty($data['capacity']) || empty($data['licensePlate'])) {
+        $this->checkOrgId();
+        if (empty($id) || empty($data['name']) || empty($data['category']) || empty($data['licensePlate'])) {
             return false;
         }
 
         try {
             $sql = "UPDATE vehicles SET
                         name = ?, category = ?, capacity = ?, licensePlate = ?, mileage = ?
-                    WHERE id = ?";
+                    WHERE id = ? AND organization_id = ?";
 
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
                 $data['name'],
                 $data['category'],
-                $data['capacity'],
+                (int)$data['capacity'],
                 $data['licensePlate'],
-                $data['mileage'],
-                $id
+                (int)$data['mileage'],
+                $id,
+                $this->organization_id
             ]);
         } catch (PDOException $e) {
             error_log("Error updating vehicle: " . $e->getMessage());
@@ -104,15 +102,11 @@ class Vehicle {
         }
     }
 
-    /**
-     * Deletes a vehicle from the master fleet.
-     * @param int $id
-     * @return bool
-     */
     public function delete($id) {
+        $this->checkOrgId();
         try {
-            $stmt = $this->db->prepare("DELETE FROM vehicles WHERE id = ?");
-            return $stmt->execute([$id]);
+            $stmt = $this->db->prepare("DELETE FROM vehicles WHERE id = ? AND organization_id = ?");
+            return $stmt->execute([$id, $this->organization_id]);
         } catch (PDOException $e) {
             error_log("Error deleting vehicle: " . $e->getMessage());
             return false;

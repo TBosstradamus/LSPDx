@@ -42,6 +42,7 @@ $pageRoutes = [
     'handle_time_approval',
     'edit_user_roles',
     'handle_edit_user_roles',
+    'handle_clock_in',
 ];
 
 $apiRoutes = [
