@@ -192,5 +192,22 @@ class Vehicle {
             return false;
         }
     }
+
+    /**
+     * Toggles the on-duty status for a vehicle.
+     * @param int $vehicleId
+     * @return bool
+     */
+    public function toggleOnDutyStatus($vehicleId) {
+        try {
+            $sql = "UPDATE vehicles SET on_duty = NOT on_duty WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $vehicleId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error toggling on-duty status: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>

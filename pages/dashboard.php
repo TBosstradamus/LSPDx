@@ -5,6 +5,7 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     die('Forbidden');
 }
 
+// Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
@@ -12,84 +13,76 @@ if (!isset($_SESSION['user_id'])) {
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';
-require_once BASE_PATH . '/src/Vehicle.php';
 
 // --- PAGE-SPECIFIC LOGIC ---
-// We will fetch the initial state here. Dynamic updates will be done via JS.
 $officerModel = new Officer();
-// For now, let's just get all officers. We'll refine this later to "available" officers.
-$availableOfficers = $officerModel->getAll();
+$currentUser = $officerModel->findById($_SESSION['officer_id']);
 
-$vehicleModel = new Vehicle();
-// For now, let's get all vehicles. We'll refine this to "on-duty" vehicles.
-$onDutyVehicles = $vehicleModel->getAll();
-
+if (!$currentUser) {
+    header('Location: index.php?page=logout');
+    exit;
+}
 
 // --- TEMPLATE ---
-$pageTitle = 'Dispatch Dashboard';
-// For the dashboard, we use a slightly different template structure without the main sidebar.
+$pageTitle = 'Dashboard';
+include_once BASE_PATH . '/templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($pageTitle); ?> - LSPD Intranet</title>
-    <link rel="stylesheet" href="public/css/style.css">
-    <link rel="stylesheet" href="public/css/dispatch.css"> <!-- New CSS file for this page -->
-</head>
-<body class="dispatch-body">
 
-    <header class="dispatch-header">
-        <!-- Header roles will be implemented later -->
-        <div class="header-role">DISPATCH: --</div>
-        <div class="header-role">CO-DISPATCH: --</div>
-        <div class="header-role">AIR-1: --</div>
-        <div class="header-role">AIR-2: --</div>
-        <div class="header-actions">
-            <a href="index.php?page=hr" class="button button-secondary">Personal</a>
-            <a href="index.php?page=logout" class="button button-danger">Abmelden</a>
-        </div>
-    </header>
+<style>
+.dashboard-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+.widget-link {
+    display: block;
+    background-color: #2d3748;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: #cbd5e0;
+    transition: transform 0.2s, background-color 0.2s;
+}
+.widget-link:hover {
+    transform: translateY(-5px);
+    background-color: #4a5568;
+}
+.widget-link h3 {
+    margin-top: 0;
+    color: #90cdf4;
+    font-size: 1.5rem;
+}
+.widget-link p {
+    color: #a0aec0;
+}
+</style>
 
-    <div class="dispatch-main-content">
-        <aside class="dispatch-sidebar">
-            <h3>Verfügbare Einheiten</h3>
-            <div id="officer-list">
-                <?php foreach ($availableOfficers as $officer): ?>
-                    <div class="officer-card" draggable="true" data-officer-id="<?php echo $officer['id']; ?>">
-                        <strong><?php echo htmlspecialchars($officer['lastName'] . ', ' . $officer['firstName']); ?></strong>
-                        <span>#<?php echo htmlspecialchars($officer['badgeNumber']); ?> | <?php echo htmlspecialchars($officer['rank']); ?></span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </aside>
+<!-- Start of page-specific content -->
+<p>
+    Willkommen zurück im LSPD Intranet, <strong><?php echo htmlspecialchars($currentUser['firstName'] . ' ' . $currentUser['lastName']); ?></strong>.
+</p>
+<p>Wählen Sie einen Bereich aus, um fortzufahren.</p>
 
-        <main class="dispatch-grid-container">
-            <div id="vehicle-grid">
-                 <?php foreach ($onDutyVehicles as $vehicle): ?>
-                    <div class="vehicle-card" data-vehicle-id="<?php echo $vehicle['id']; ?>">
-                        <div class="vehicle-header">
-                            <span class="vehicle-name"><?php echo htmlspecialchars($vehicle['name']); ?></span>
-                            <span class="vehicle-status status-1">Code 1</span>
-                        </div>
-                        <div class="vehicle-details">
-                            <span>Callsign: --</span>
-                            <span>Funk: --</span>
-                        </div>
-                        <div class="vehicle-seats">
-                            <?php for ($i = 0; $i < $vehicle['capacity']; $i++): ?>
-                                <div class="seat" data-seat-index="<?php echo $i; ?>">
-                                    Sitz <?php echo $i + 1; ?>
-                                </div>
-                            <?php endfor; ?>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </main>
-    </div>
+<div class="dashboard-widgets">
+    <a href="index.php?page=dispatch" class="widget-link">
+        <h3>Dispatch</h3>
+        <p>Zur Echtzeit-Übersicht aller Einheiten im Dienst.</p>
+    </a>
+    <a href="index.php?page=mein_dienst" class="widget-link">
+        <h3>Mein Dienst</h3>
+        <p>Persönliche Dienstübersicht, Stempeluhr und Lizenzen.</p>
+    </a>
+    <a href="index.php?page=hr" class="widget-link">
+        <h3>Personalabteilung</h3>
+        <p>Beamte, Sanktionen und Zugangsdaten verwalten.</p>
+    </a>
+     <a href="index.php?page=fuhrpark" class="widget-link">
+        <h3>Fuhrpark</h3>
+        <p>Alle Fahrzeuge der Flotte verwalten.</p>
+    </a>
+</div>
+<!-- End of page-specific content -->
 
-    <script src="public/js/dispatch.js"></script> <!-- New JS file for this page -->
-</body>
-</html>
+<?php
+include_once BASE_PATH . '/templates/footer.php';
+?>

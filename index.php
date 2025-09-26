@@ -41,14 +41,61 @@ if (!$isLoggedIn && $page !== 'login' && $page !== 'handle_login') {
 
 // Page whitelist to prevent including arbitrary files
 $allowedPages = [
+    // Login / Logout
     'login',
     'handle_login',
     'logout',
-    'dashboard', // Will be the main dispatch page
+
+    // Main Navigation
+    'dashboard',
+    'dispatch',
     'mein_dienst',
     'hr',
     'fuhrpark',
-    // ... more pages to come
+    'training_modules',
+    'checklists',
+    'documents',
+    'mailbox',
+    'it_logs',
+
+    // HR Sub-pages & Handlers
+    'add_officer',
+    'handle_add_officer',
+    'edit_officer',
+    'handle_edit_officer',
+    'sanctions',
+    'add_sanction',
+    'handle_add_sanction',
+    'credentials',
+    'handle_regenerate_password',
+
+    // Document Sub-pages & Handlers
+    'add_document',
+    'handle_add_document',
+    'view_document',
+    'handle_delete_document',
+
+    // Training Module Sub-pages & Handlers
+    'add_training_module',
+    'handle_add_training_module',
+    'view_training_module',
+    'handle_delete_training_module',
+
+    // Checklist Sub-pages & Handlers
+    'edit_checklist',
+    'handle_edit_checklist',
+
+    // Fleet Sub-pages & Handlers
+    'add_vehicle',
+    'handle_add_vehicle',
+    'edit_vehicle',
+    'handle_edit_vehicle',
+    'handle_delete_vehicle',
+
+    // Mailbox Sub-pages & Handlers
+    'compose_email',
+    'handle_compose_email',
+    'view_email',
 ];
 
 if (in_array($page, $allowedPages)) {

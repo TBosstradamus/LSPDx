@@ -20,12 +20,17 @@ class Dispatch {
      */
     public function getState() {
         $vehicles = $this->getOnDutyVehiclesWithAssignments();
-        $assignedOfficerIds = $this->getAssignedOfficerIds($vehicles);
+        $headerRoles = $this->getHeaderAssignments();
+
+        $vehicleOfficerIds = $this->getAssignedOfficerIds($vehicles);
+        $headerOfficerIds = array_values(array_filter(array_column($headerRoles, 'officer_id')));
+        $assignedOfficerIds = array_unique(array_merge($vehicleOfficerIds, $headerOfficerIds));
+
         $availableOfficers = $this->getAvailableOfficers($assignedOfficerIds);
 
         return [
             'vehicles' => $vehicles,
-            'header_roles' => [], // Placeholder for now
+            'header_roles' => $headerRoles,
             'available_officers' => $availableOfficers
         ];
     }
@@ -119,13 +124,68 @@ class Dispatch {
      */
     public function unassignOfficer($officerId) {
         try {
-            $sql = "DELETE FROM vehicle_assignments WHERE officer_id = :officer_id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
-            $stmt->execute();
-            // TODO: Also remove from header assignments when implemented
+            $this->db->beginTransaction();
+            // Remove from vehicle assignments
+            $sqlVehicle = "DELETE FROM vehicle_assignments WHERE officer_id = :officer_id";
+            $stmtVehicle = $this->db->prepare($sqlVehicle);
+            $stmtVehicle->execute([':officer_id' => $officerId]);
+
+            // Remove from header assignments
+            $sqlHeader = "DELETE FROM header_assignments WHERE officer_id = :officer_id";
+            $stmtHeader = $this->db->prepare($sqlHeader);
+            $stmtHeader->execute([':officer_id' => $officerId]);
+
+            $this->db->commit();
         } catch (PDOException $e) {
-             error_log("Error unassigning officer: " . $e->getMessage());
+            $this->db->rollBack();
+            error_log("Error unassigning officer: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Assigns an officer to a header role.
+     * @param int $officerId
+     * @param string $roleName
+     * @return bool
+     */
+    public function assignOfficerToHeader($officerId, $roleName) {
+        $this->unassignOfficer($officerId);
+
+        try {
+            $sql = "INSERT INTO header_assignments (role_name, officer_id)
+                    VALUES (:role_name, :officer_id)
+                    ON DUPLICATE KEY UPDATE officer_id = :officer_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':role_name', $roleName, PDO::PARAM_STR);
+            $stmt->bindParam(':officer_id', $officerId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error assigning officer to header: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function getHeaderAssignments() {
+        try {
+            $sql = "SELECT h.role_name, o.id as officer_id, o.firstName, o.lastName
+                    FROM header_assignments h
+                    JOIN officers o ON h.officer_id = o.id";
+            $stmt = $this->db->query($sql);
+            $assignments = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Ensure all roles are present in the final array
+            $allRoles = ['dispatch' => null, 'co-dispatch' => null, 'air1' => null, 'air2' => null];
+            $assignedRoles = $this->db->query("SELECT h.role_name, o.id as officer_id, o.firstName, o.lastName FROM header_assignments h JOIN officers o ON h.officer_id = o.id")->fetchAll(PDO::FETCH_GROUP);
+
+            foreach ($assignedRoles as $role => $officerArray) {
+                $allRoles[$role] = $officerArray[0]; // fetchAll(PDO::FETCH_GROUP) creates a nested array
+            }
+
+            return $allRoles;
+
+        } catch (PDOException $e) {
+            error_log("Error fetching header assignments: " . $e->getMessage());
+            return [];
         }
     }
 }
