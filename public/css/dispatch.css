@@ -326,3 +326,66 @@
     color: #8b949e;
     text-align: right;
 }
+
+.sidebar-divider {
+    height: 1px;
+    background-color: #30363d;
+    margin: 1rem 0;
+}
+
+.activity-zone {
+    background-color: #0d1117;
+    border: 1px dashed #30363d;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    transition: all 0.2s;
+}
+
+.activity-zone.drag-over {
+    border-color: #58a6ff;
+    background-color: #388bfd40;
+}
+
+.activity-zone h4 {
+    margin: 0 0 0.5rem 0;
+    color: #8b949e;
+    font-size: 0.9rem;
+}
+
+.activity-officers .officer-card {
+    cursor: move;
+}
+
+/* Dynamic Dropdown for Status/Funk */
+.dynamic-dropdown {
+    position: absolute;
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    z-index: 1100;
+    min-width: 200px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.dynamic-dropdown .dropdown-item {
+    padding: 0.75rem 1rem;
+    color: #c9d1d9;
+    cursor: pointer;
+}
+.dynamic-dropdown .dropdown-item:hover {
+    background-color: #58a6ff;
+    color: #161b22;
+}
+.dynamic-dropdown .dropdown-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    background: #0d1117;
+    border: none;
+    border-bottom: 1px solid #30363d;
+    color: white;
+}
+.dynamic-dropdown .dropdown-input:focus {
+    outline: none;
+    border-bottom-color: #58a6ff;
+}

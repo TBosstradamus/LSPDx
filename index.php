@@ -105,6 +105,10 @@ $allowedPages = [
     'handle_clock_out',
     'edit_user_roles',
     'handle_edit_user_roles',
+
+    // API Handlers
+    'unassign_officer',
+    'assign_officer_to_activity',
 ];
 
 if (in_array($page, $allowedPages)) {
