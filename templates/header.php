@@ -4,89 +4,109 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     http_response_code(403);
     die('Forbidden');
 }
-$currentPage = $_GET['page'] ?? '';
+$currentPage = $_GET['page'] ?? 'dashboard';
+
+// Mapping pages to navigation groups
+$navLinks = [
+    'REGISTRIES' => [
+        // 'citizens' => ['name' => 'Citizens', 'icon' => '<path d="..."/>'], // Placeholder
+        'fuhrpark' => ['name' => 'Vehicles', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 013.375-3.375h1.5a1.125 1.125 0 011.125 1.125v-1.5a3.375 3.375 0 013.375-3.375H9.75" />'],
+    ],
+    'DEPARTMENT' => [
+        'dashboard' => ['name' => 'Dashboard', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />'],
+        'hr' => ['name' => 'Officers', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 12A3 3 0 1012 6a3 3 0 000 6z" />'],
+        'mein_dienst' => ['name' => 'My Profile', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />'],
+        'mailbox' => ['name' => 'Mailbox', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />'],
+
+    ],
+];
 ?>
 <!DOCTYPE html>
-<html lang="de" class="h-full bg-gray-900">
+<html lang="de" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : 'LSPD Intranet'; ?> - Intranet</title>
+    <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) . ' | MDT' : 'MDT'; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+        @layer base {
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background-color: #161B22;
+            }
+            ::-webkit-scrollbar-thumb {
+                background-color: #313945;
+                border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background-color: #4A5361;
+            }
+        }
+    </style>
     <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            gray: {
-              800: '#1F2937',
-              900: '#111827',
-            },
-            blue: {
-                400: '#60A5FA',
-                500: '#3B82F6',
-            }
+            'brand-bg': '#0D1117',
+            'brand-sidebar': '#161B22',
+            'brand-card': '#161B22',
+            'brand-border': '#30363D',
+            'brand-text-primary': '#C9D1D9',
+            'brand-text-secondary': '#8B949E',
+            'brand-blue': '#58A6FF',
+            'brand-red': '#F85149',
           }
         }
       }
     }
     </script>
 </head>
-<body class="h-full">
+<body class="h-full bg-brand-bg text-brand-text-primary font-sans">
     <div class="flex h-full">
         <!-- Static sidebar for desktop -->
-        <div class="flex flex-col w-64 bg-gray-900 border-r border-gray-700">
-            <div class="flex items-center justify-center h-16 border-b border-gray-700">
-                <span class="text-white text-xl font-bold">LSPD Intranet</span>
+        <div class="flex flex-col w-64 bg-brand-sidebar">
+            <div class="flex items-center justify-center h-20 border-b border-brand-border">
+                <div class="flex items-center">
+                    <img class="h-10 w-auto" src="https://r2.fivemanage.com/dewOfulJ8c84LP6UMf9j5/global/logo_lspd.png" alt="LSPD Logo">
+                    <div class="ml-3">
+                        <p class="text-white font-bold text-sm">LOS SANTOS POLICE</p>
+                        <p class="text-brand-text-secondary text-xs">Mobile Data Terminal</p>
+                    </div>
+                </div>
             </div>
             <div class="flex-1 flex flex-col overflow-y-auto">
-                <nav class="flex-1 px-2 py-4">
-                    <h3 class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Hauptmenü</h3>
-                    <a href="index.php?page=dashboard" class="mt-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === 'dashboard') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?>">
-                        <!-- Icon: Dashboard -->
-                        <svg class="mr-3 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                        Dashboard
-                    </a>
-                    <a href="index.php?page=dispatch" class="mt-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === 'dispatch') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?>">
-                        <!-- Icon: Dispatch -->
-                        <svg class="mr-3 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                        Dispatch
-                    </a>
-                    <a href="index.php?page=mein_dienst" class="mt-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === 'mein_dienst') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?>">
-                        <!-- Icon: Mein Dienst -->
-                        <svg class="mr-3 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        Mein Dienst
-                    </a>
-                    <a href="index.php?page=mailbox" class="mt-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === 'mailbox') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?>">
-                        <!-- Icon: Mailbox -->
-                        <svg class="mr-3 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        Postfach
-                    </a>
-
-                    <h3 class="mt-4 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Verwaltung</h3>
-                    <a href="index.php?page=hr" class="mt-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === 'hr') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?>">
-                        <!-- Icon: HR -->
-                        <svg class="mr-3 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197" /></svg>
-                        Personal
-                    </a>
-                     <a href="index.php?page=fuhrpark" class="mt-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === 'fuhrpark') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?>">
-                        <!-- Icon: Fuhrpark -->
-                        <svg class="mr-3 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8a1 1 0 001-1zM3 11h10" /></svg>
-                        Fuhrpark
-                    </a>
-
+                <nav class="flex-1 px-4 py-4 space-y-6">
+                    <?php foreach ($navLinks as $group => $links): ?>
+                        <div>
+                            <h3 class="px-3 text-xs font-semibold text-brand-text-secondary uppercase tracking-wider"><?php echo $group; ?></h3>
+                            <div class="mt-2 space-y-1">
+                                <?php foreach ($links as $page => $details): ?>
+                                    <a href="index.php?page=<?php echo $page; ?>" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo ($currentPage === $page) ? 'bg-gray-900/50 text-white' : 'text-brand-text-secondary hover:text-white hover:bg-gray-700/50'; ?>">
+                                        <svg class="mr-3 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <?php echo $details['icon']; ?>
+                                        </svg>
+                                        <?php echo $details['name']; ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 </nav>
             </div>
-            <div class="flex-shrink-0 flex border-t border-gray-700 p-4">
+            <div class="flex-shrink-0 flex border-t border-brand-border p-4">
                 <a href="index.php?page=logout" class="flex-shrink-0 w-full group block">
                     <div class="flex items-center">
-                        <div>
-                            <!-- Icon: Logout -->
-                            <svg class="inline-block h-6 w-6 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <div class="bg-brand-red rounded-md p-2">
+                            <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                            </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm font-medium text-red-400 group-hover:text-red-300">
-                                Abmelden
+                            <p class="text-sm font-medium text-white">
+                                Close MDT
                             </p>
                         </div>
                     </div>
@@ -96,8 +116,17 @@ $currentPage = $_GET['page'] ?? '';
 
         <!-- Main content -->
         <div class="flex-1 flex flex-col overflow-hidden">
+            <div class="bg-brand-sidebar border-b border-brand-border px-8 py-3">
+                 <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                         <span class="h-2 w-2 bg-green-500 rounded-full mr-2"></span>
+                         <span class="text-sm text-brand-text-secondary">System Online</span>
+                    </div>
+                    <div class="text-sm text-brand-text-secondary">
+                        Version 1.0.0
+                    </div>
+                 </div>
+            </div>
             <main class="flex-1 relative overflow-y-auto focus:outline-none">
-                <div class="py-6 px-4 sm:px-6 lg:px-8">
-                    <h1 class="text-2xl font-bold text-white"><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Dashboard'; ?></h1>
-                    <div class="mt-4">
-                        <!-- Page content will be inserted here -->
+                <div class="py-8 px-8">
+                    <!-- Page content will be inserted here -->

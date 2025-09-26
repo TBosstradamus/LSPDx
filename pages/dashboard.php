@@ -6,69 +6,72 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 // Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['organization_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
 
 require_once BASE_PATH . '/src/Officer.php';
-$officerModel = new Officer();
-$currentUser = $officerModel->findById($_SESSION['officer_id']);
+// Use the organization_id from the session to correctly instantiate the model
+$officerModel = new Officer($_SESSION['organization_id']);
+$currentUser = $officerModel->findByIdInOrg($_SESSION['officer_id']);
 
 if (!$currentUser) {
+    // Failsafe, redirect to logout if user data is inconsistent
     header('Location: index.php?page=logout');
     exit;
 }
 
 $pageTitle = 'Dashboard';
 include_once BASE_PATH . '/templates/header.php';
+
+// Define the quick access links for the dashboard cards
+$quickLinks = [
+    'mein_dienst' => [
+        'name' => 'My Profile',
+        'desc' => 'Manage your duty status and personal information.',
+        'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />'
+    ],
+    'hr' => [
+        'name' => 'Officers',
+        'desc' => 'View and manage department personnel.',
+        'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 12A3 3 0 1012 6a3 3 0 000 6z" />'
+    ],
+    'fuhrpark' => [
+        'name' => 'Vehicles',
+        'desc' => 'Access the vehicle fleet database.',
+        'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 013.375-3.375h1.5a1.125 1.125 0 011.125 1.125v-1.5a3.375 3.375 0 013.375-3.375H9.75" />'
+    ],
+    'mailbox' => [
+        'name' => 'Mailbox',
+        'desc' => 'Check your internal messages.',
+        'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />'
+    ],
+];
 ?>
 
 <!-- Start of page-specific content -->
-<div class="rounded-lg bg-gray-800 p-6">
-    <h2 class="text-xl font-bold text-white">Willkommen zurück, <?php echo htmlspecialchars($currentUser['firstName']); ?>!</h2>
-    <p class="mt-2 text-gray-400">Dies ist Ihre zentrale Anlaufstelle. Wählen Sie einen Bereich aus, um fortzufahren.</p>
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-white">Dashboard</h1>
+    <p class="mt-1 text-brand-text-secondary">Welcome back, Officer <?php echo htmlspecialchars($currentUser['lastName']); ?>.</p>
 </div>
 
-<div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    <!-- Dispatch Widget -->
-    <a href="index.php?page=dispatch" class="group block rounded-lg bg-gray-800 p-6 hover:bg-gray-700 transition-colors">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <?php foreach ($quickLinks as $page => $details): ?>
+    <a href="index.php?page=<?php echo $page; ?>" class="group block bg-brand-card border border-brand-border rounded-lg p-6 hover:border-brand-blue transition-colors duration-200">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            <div class="flex-shrink-0 bg-gray-700/50 rounded-md p-3">
+                 <svg class="h-6 w-6 text-brand-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <?php echo $details['icon']; ?>
+                </svg>
             </div>
             <div class="ml-4">
-                <h3 class="text-lg font-medium text-white">Dispatch</h3>
-                <p class="text-sm text-gray-400 mt-1">Echtzeit-Übersicht der Einheiten.</p>
+                <h3 class="text-lg font-medium text-brand-text-primary"><?php echo $details['name']; ?></h3>
+                <p class="text-sm text-brand-text-secondary mt-1"><?php echo $details['desc']; ?></p>
             </div>
         </div>
     </a>
-
-    <!-- Mein Dienst Widget -->
-    <a href="index.php?page=mein_dienst" class="group block rounded-lg bg-gray-800 p-6 hover:bg-gray-700 transition-colors">
-        <div class="flex items-center">
-            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-            </div>
-            <div class="ml-4">
-                <h3 class="text-lg font-medium text-white">Mein Dienst</h3>
-                <p class="text-sm text-gray-400 mt-1">Stempeluhr, Lizenzen und Akte.</p>
-            </div>
-        </div>
-    </a>
-
-    <!-- HR Widget -->
-    <a href="index.php?page=hr" class="group block rounded-lg bg-gray-800 p-6 hover:bg-gray-700 transition-colors">
-        <div class="flex items-center">
-            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197" /></svg>
-            </div>
-            <div class="ml-4">
-                <h3 class="text-lg font-medium text-white">Personal</h3>
-                <p class="text-sm text-gray-400 mt-1">Beamte und Sanktionen verwalten.</p>
-            </div>
-        </div>
-    </a>
+    <?php endforeach; ?>
 </div>
 
 <!-- End of page-specific content -->

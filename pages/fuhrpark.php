@@ -9,65 +9,86 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once BASE_PATH . '/src/Vehicle.php';
 
-$vehicleModel = new Vehicle();
+$vehicleModel = new Vehicle($_SESSION['organization_id']);
 $vehicles = $vehicleModel->getAll();
 
-$pageTitle = 'Fuhrpark';
+$pageTitle = 'Vehicles';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
 <!-- Start of page-specific content -->
 <div class="flex justify-between items-center mb-6">
-    <p class="text-gray-400">Verwalten Sie hier die Stammdaten aller Fahrzeuge Ihrer Organisation.</p>
     <div>
-        <a href="index.php?page=add_vehicle" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
-             <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-            Fahrzeug hinzufügen
+        <h1 class="text-3xl font-bold text-white">Vehicle Fleet</h1>
+        <p class="mt-1 text-brand-text-secondary">Manage all vehicles in your organization's fleet.</p>
+    </div>
+    <div>
+        <a href="index.php?page=add_vehicle" class="bg-brand-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
+            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Vehicle
         </a>
     </div>
 </div>
 
 <?php if (isset($_GET['status'])): ?>
-    <div class="bg-green-500 text-white p-4 rounded-lg mb-6">
+    <div class="bg-green-500/20 border border-green-500 text-green-300 p-4 rounded-lg mb-6">
         <?php
-        if ($_GET['status'] === 'vehicle_added') echo 'Das Fahrzeug wurde erfolgreich hinzugefügt.';
-        if ($_GET['status'] === 'vehicle_updated') echo 'Das Fahrzeug wurde erfolgreich aktualisiert.';
-        if ($_GET['status'] === 'vehicle_deleted') echo 'Das Fahrzeug wurde erfolgreich gelöscht.';
+        if ($_GET['status'] === 'vehicle_added') echo 'The vehicle was successfully added.';
+        if ($_GET['status'] === 'vehicle_updated') echo 'The vehicle was successfully updated.';
+        if ($_GET['status'] === 'vehicle_deleted') echo 'The vehicle was successfully deleted.';
         ?>
     </div>
 <?php endif; ?>
 
-<div class="bg-gray-800 rounded-lg shadow overflow-hidden">
-    <table class="min-w-full">
-        <thead class="bg-gray-700">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Kategorie</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Kennzeichen</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Kilometerstand</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Aktionen</th>
-            </tr>
-        </thead>
-        <tbody class="bg-gray-800 divide-y divide-gray-700">
-            <?php if (empty($vehicles)): ?>
-                <tr>
-                    <td colspan="5" class="px-6 py-4 text-center text-gray-400">Keine Fahrzeuge in der Datenbank gefunden.</td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($vehicles as $vehicle): ?>
-                    <tr class="hover:bg-gray-700">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white"><?php echo htmlspecialchars($vehicle['name']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars($vehicle['category']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars($vehicle['licensePlate']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars(number_format($vehicle['mileage'], 0, ',', '.')); ?> km</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="text-indigo-400 hover:text-indigo-300">Bearbeiten</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+<div class="bg-brand-card border border-brand-border rounded-lg shadow">
+    <!-- Search Bar -->
+    <div class="p-4 border-b border-brand-border">
+         <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-brand-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <input type="text" name="search" id="search" class="block w-full pl-10 pr-3 py-2 bg-brand-bg border border-brand-border rounded-md leading-5 text-brand-text-primary placeholder-brand-text-secondary focus:outline-none focus:bg-brand-sidebar focus:border-brand-blue" placeholder="Search vehicles...">
+        </div>
+    </div>
+
+    <!-- Vehicle List -->
+    <div class="divide-y divide-brand-border">
+        <?php if (empty($vehicles)): ?>
+            <div class="p-6 text-center text-brand-text-secondary">
+                No vehicles found in the database.
+            </div>
+        <?php else: ?>
+            <?php foreach ($vehicles as $vehicle): ?>
+                <div class="p-4 hover:bg-gray-800/50 flex justify-between items-center">
+                    <div class="flex-grow grid grid-cols-4 gap-4">
+                        <div>
+                            <div class="text-xs text-brand-text-secondary">Name</div>
+                            <div class="text-sm font-medium text-white"><?php echo htmlspecialchars($vehicle['name']); ?></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-brand-text-secondary">Category</div>
+                            <div class="text-sm text-brand-text-primary"><?php echo htmlspecialchars($vehicle['category']); ?></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-brand-text-secondary">License Plate</div>
+                            <div class="text-sm text-brand-text-primary font-mono"><?php echo htmlspecialchars($vehicle['licensePlate']); ?></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-brand-text-secondary">Mileage</div>
+                            <div class="text-sm text-brand-text-primary"><?php echo htmlspecialchars(number_format($vehicle['mileage'], 0, ',', '.')); ?> km</div>
+                        </div>
+                    </div>
+                    <div class="ml-4 flex-shrink-0">
+                        <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="text-brand-blue hover:underline">Edit</a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
 </div>
 <!-- End of page-specific content -->
 

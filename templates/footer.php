@@ -5,10 +5,9 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     die('Forbidden');
 }
 ?>
-                    </div>
-                </div>
+                </div> <!--/ End page content -->
             </main>
-        </div>
-    </div>
+        </div> <!--/ End main content -->
+    </div> <!--/ End flex wrapper -->
 </body>
 </html>
