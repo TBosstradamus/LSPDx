@@ -31,6 +31,7 @@ if ($user) {
     $_SESSION['officer_id'] = $user['officer_id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['organization_id'] = $user['organization_id'];
+    $_SESSION['roles'] = $user['roles'] ?? []; // Store roles in session
 
     // Redirect to the dashboard
     header('Location: index.php?page=dashboard');
