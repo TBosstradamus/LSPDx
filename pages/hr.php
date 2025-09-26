@@ -50,10 +50,18 @@ include_once BASE_PATH . '/templates/header.php';
 <p>Verwalten Sie hier alle Aspekte der Personalangelegenheiten des LSPD.</p>
 
 <section class="hr-actions">
-    <a href="index.php?page=add_officer" class="button">Beamten hinzufügen</a>
-    <a href="index.php?page=sanctions" class="button button-secondary">Sanktionen verwalten</a>
-    <a href="index.php?page=credentials" class="button button-secondary">Zugangsdaten verwalten</a>
-    <a href="index.php?page=time_approval" class="button button-secondary">Zeit-Genehmigungen</a>
+    <?php if (hasPermission('hr_officers_manage')): ?>
+        <a href="index.php?page=add_officer" class="button">Beamten hinzufügen</a>
+    <?php endif; ?>
+    <?php if (hasPermission('hr_sanctions_manage')): ?>
+        <a href="index.php?page=sanctions" class="button button-secondary">Sanktionen verwalten</a>
+    <?php endif; ?>
+    <?php if (hasPermission('hr_credentials_manage')): ?>
+        <a href="index.php?page=credentials" class="button button-secondary">Zugangsdaten verwalten</a>
+    <?php endif; ?>
+    <?php if (hasPermission('hr_time_approve')): ?>
+        <a href="index.php?page=time_approval" class="button button-secondary">Zeit-Genehmigungen</a>
+    <?php endif; ?>
 </section>
 
 
@@ -88,8 +96,12 @@ include_once BASE_PATH . '/templates/header.php';
                             </span>
                         </td>
                         <td>
-                            <a href="index.php?page=edit_officer&id=<?php echo $officer['id']; ?>" class="button button-secondary">Bearbeiten</a>
-                            <a href="index.php?page=edit_user_roles&officer_id=<?php echo $officer['id']; ?>" class="button button-secondary">Rollen</a>
+                            <?php if (hasPermission('hr_officers_manage')): ?>
+                                <a href="index.php?page=edit_officer&id=<?php echo $officer['id']; ?>" class="button button-secondary">Bearbeiten</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('hr_manage_roles')): ?>
+                                <a href="index.php?page=edit_user_roles&officer_id=<?php echo $officer['id']; ?>" class="button button-secondary">Rollen</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
