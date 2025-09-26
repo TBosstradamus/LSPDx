@@ -9,38 +9,43 @@ require_once __DIR__ . '/Database.php';
 
 class Officer {
     private $db;
+    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
+        // Store the organization ID from the session upon instantiation
+        if (isset($_SESSION['organization_id'])) {
+            $this->organization_id = $_SESSION['organization_id'];
+        } else {
+            // This should not happen for a logged-in user, but as a safeguard:
+            die("Fehler: Organisations-ID nicht gefunden. Bitte neu anmelden.");
+        }
     }
 
     /**
-     * Fetches all officers from the database.
-     *
+     * Fetches all officers from the current user's organization.
      * @return array An array of all officers.
      */
     public function getAll() {
         try {
-            $stmt = $this->db->query("SELECT * FROM officers ORDER BY lastName, firstName");
+            $stmt = $this->db->prepare("SELECT * FROM officers WHERE organization_id = ? ORDER BY lastName, firstName");
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            // In a real app, log this error.
             error_log("Error fetching officers: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Fetches a single officer by their ID.
-     *
+     * Fetches a single officer by their ID, ensuring they belong to the correct organization.
      * @param int $id The ID of the officer.
      * @return array|false The officer's data or false if not found.
      */
     public function findById($id) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM officers WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
+            $stmt = $this->db->prepare("SELECT * FROM officers WHERE id = ? AND organization_id = ?");
+            $stmt->execute([$id, $this->organization_id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error finding officer by ID: " . $e->getMessage());
@@ -49,85 +54,68 @@ class Officer {
     }
 
     /**
-     * Creates a new officer in the database.
-     *
+     * Creates a new officer in the current user's organization.
      * @param array $data The officer's data from the form.
      * @return int|false The ID of the new officer or false on failure.
      */
     public function create($data) {
-        // Basic validation
         if (empty($data['firstName']) || empty($data['lastName']) || empty($data['badgeNumber']) || empty($data['rank'])) {
             return false;
         }
 
         try {
-            $sql = "INSERT INTO officers (firstName, lastName, badgeNumber, phoneNumber, gender, rank, isActive)
-                    VALUES (:firstName, :lastName, :badgeNumber, :phoneNumber, :gender, :rank, TRUE)";
+            $sql = "INSERT INTO officers (organization_id, firstName, lastName, badgeNumber, phoneNumber, gender, rank, isActive)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)";
 
             $stmt = $this->db->prepare($sql);
-
-            $stmt->bindParam(':firstName', $data['firstName']);
-            $stmt->bindParam(':lastName', $data['lastName']);
-            $stmt->bindParam(':badgeNumber', $data['badgeNumber']);
-            $stmt->bindParam(':phoneNumber', $data['phoneNumber']);
-            $stmt->bindParam(':gender', $data['gender']);
-            $stmt->bindParam(':rank', $data['rank']);
-
-            if ($stmt->execute()) {
-                return $this->db->lastInsertId();
-            } else {
-                return false;
-            }
+            $stmt->execute([
+                $this->organization_id,
+                $data['firstName'],
+                $data['lastName'],
+                $data['badgeNumber'],
+                $data['phoneNumber'],
+                $data['gender'],
+                $data['rank']
+            ]);
+            return $this->db->lastInsertId();
         } catch (PDOException $e) {
-            // Check for duplicate entry on badgeNumber
-            if ($e->getCode() == 23000) { // Integrity constraint violation
-                // You could set a specific error message here for the user
-            }
             error_log("Error creating officer: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Updates an officer's data in the database.
-     *
+     * Updates an officer's data, ensuring they belong to the correct organization.
      * @param int $id The ID of the officer to update.
      * @param array $data The new data for the officer.
      * @return bool True on success, false on failure.
      */
     public function update($id, $data) {
-        // Basic validation
         if (empty($id) || empty($data['firstName']) || empty($data['lastName']) || empty($data['badgeNumber']) || empty($data['rank'])) {
             return false;
         }
 
         try {
             $sql = "UPDATE officers SET
-                        firstName = :firstName,
-                        lastName = :lastName,
-                        badgeNumber = :badgeNumber,
-                        phoneNumber = :phoneNumber,
-                        gender = :gender,
-                        rank = :rank,
-                        isActive = :isActive
-                    WHERE id = :id";
+                        firstName = ?, lastName = ?, badgeNumber = ?, phoneNumber = ?,
+                        gender = ?, rank = ?, isActive = ?, display_name = ?
+                    WHERE id = ? AND organization_id = ?";
 
             $stmt = $this->db->prepare($sql);
-
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':firstName', $data['firstName']);
-            $stmt->bindParam(':lastName', $data['lastName']);
-            $stmt->bindParam(':badgeNumber', $data['badgeNumber']);
-            $stmt->bindParam(':phoneNumber', $data['phoneNumber']);
-            $stmt->bindParam(':gender', $data['gender']);
-            $stmt->bindParam(':rank', $data['rank']);
-
-            // Bind isActive as a boolean
-            $isActive = filter_var($data['isActive'], FILTER_VALIDATE_BOOLEAN);
-            $stmt->bindParam(':isActive', $isActive, PDO::PARAM_BOOL);
-
-            return $stmt->execute();
-
+            // Use null coalescing operator for display_name
+            $displayName = !empty($data['display_name']) ? $data['display_name'] : null;
+            return $stmt->execute([
+                $data['firstName'],
+                $data['lastName'],
+                $data['badgeNumber'],
+                $data['phoneNumber'],
+                $data['gender'],
+                $data['rank'],
+                filter_var($data['isActive'], FILTER_VALIDATE_BOOLEAN),
+                $displayName,
+                $id,
+                $this->organization_id
+            ]);
         } catch (PDOException $e) {
             error_log("Error updating officer: " . $e->getMessage());
             return false;

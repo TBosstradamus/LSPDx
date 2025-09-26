@@ -9,14 +9,19 @@ require_once __DIR__ . '/Database.php';
 
 class Sanction {
     private $db;
+    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
+        if (isset($_SESSION['organization_id'])) {
+            $this->organization_id = $_SESSION['organization_id'];
+        } else {
+            die("Fehler: Organisations-ID nicht gefunden.");
+        }
     }
 
     /**
-     * Fetches all sanctions from the database, joining with officer names.
-     *
+     * Fetches all sanctions from the current user's organization.
      * @return array An array of all sanctions.
      */
     public function getAll() {
@@ -30,9 +35,11 @@ class Sanction {
                     FROM sanctions s
                     JOIN officers o ON s.officer_id = o.id
                     JOIN officers i ON s.issued_by_officer_id = i.id
+                    WHERE s.organization_id = ?
                     ORDER BY s.timestamp DESC";
 
-            $stmt = $this->db->query($sql);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching sanctions: " . $e->getMessage());
@@ -41,30 +48,27 @@ class Sanction {
     }
 
     /**
-     * Creates a new sanction in the database.
-     *
+     * Creates a new sanction in the current user's organization.
      * @param array $data The sanction's data from the form.
      * @return bool True on success, false on failure.
      */
     public function create($data) {
-        // Basic validation
         if (empty($data['officer_id']) || empty($data['issued_by_officer_id']) || empty($data['sanctionType']) || empty($data['reason'])) {
             return false;
         }
 
         try {
-            $sql = "INSERT INTO sanctions (officer_id, issued_by_officer_id, sanctionType, reason)
-                    VALUES (:officer_id, :issued_by_officer_id, :sanctionType, :reason)";
+            $sql = "INSERT INTO sanctions (organization_id, officer_id, issued_by_officer_id, sanctionType, reason)
+                    VALUES (?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
-
-            $stmt->bindParam(':officer_id', $data['officer_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':issued_by_officer_id', $data['issued_by_officer_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':sanctionType', $data['sanctionType']);
-            $stmt->bindParam(':reason', $data['reason']);
-
-            return $stmt->execute();
-
+            return $stmt->execute([
+                $this->organization_id,
+                $data['officer_id'],
+                $data['issued_by_officer_id'],
+                $data['sanctionType'],
+                $data['reason']
+            ]);
         } catch (PDOException $e) {
             error_log("Error creating sanction: " . $e->getMessage());
             return false;

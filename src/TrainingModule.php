@@ -9,13 +9,19 @@ require_once __DIR__ . '/Database.php';
 
 class TrainingModule {
     private $db;
+    private $organization_id;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
+        if (isset($_SESSION['organization_id'])) {
+            $this->organization_id = $_SESSION['organization_id'];
+        } else {
+            die("Fehler: Organisations-ID nicht gefunden.");
+        }
     }
 
     /**
-     * Fetches all training modules from the database.
+     * Fetches all training modules from the current user's organization.
      * @return array
      */
     public function getAll() {
@@ -23,8 +29,10 @@ class TrainingModule {
             $sql = "SELECT m.*, o.firstName, o.lastName
                     FROM training_modules m
                     LEFT JOIN officers o ON m.created_by_id = o.id
+                    WHERE m.organization_id = ?
                     ORDER BY m.title ASC";
-            $stmt = $this->db->query($sql);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching training modules: " . $e->getMessage());
@@ -33,15 +41,14 @@ class TrainingModule {
     }
 
     /**
-     * Fetches a single module by its ID.
+     * Fetches a single module by its ID, scoped to the organization.
      * @param int $id
      * @return array|false
      */
     public function findById($id) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM training_modules WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
+            $stmt = $this->db->prepare("SELECT * FROM training_modules WHERE id = ? AND organization_id = ?");
+            $stmt->execute([$id, $this->organization_id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error finding module by ID: " . $e->getMessage());
@@ -50,7 +57,7 @@ class TrainingModule {
     }
 
     /**
-     * Creates a new module.
+     * Creates a new module for the current organization.
      * @param array $data
      * @return int|false The new module's ID or false on failure.
      */
@@ -60,16 +67,15 @@ class TrainingModule {
         }
 
         try {
-            $sql = "INSERT INTO training_modules (title, content, created_by_id) VALUES (:title, :content, :created_by_id)";
+            $sql = "INSERT INTO training_modules (organization_id, title, content, created_by_id) VALUES (?, ?, ?, ?)";
             $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':title', $data['title']);
-            $stmt->bindParam(':content', $data['content']);
-            $stmt->bindParam(':created_by_id', $data['created_by_id'], PDO::PARAM_INT);
-
-            if ($stmt->execute()) {
-                return $this->db->lastInsertId();
-            }
-            return false;
+            $stmt->execute([
+                $this->organization_id,
+                $data['title'],
+                $data['content'],
+                $data['created_by_id']
+            ]);
+            return $this->db->lastInsertId();
         } catch (PDOException $e) {
             error_log("Error creating module: " . $e->getMessage());
             return false;
@@ -77,15 +83,14 @@ class TrainingModule {
     }
 
     /**
-     * Deletes a module by its ID.
+     * Deletes a module by its ID, scoped to the organization.
      * @param int $id
      * @return bool
      */
     public function delete($id) {
         try {
-            $stmt = $this->db->prepare("DELETE FROM training_modules WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $stmt = $this->db->prepare("DELETE FROM training_modules WHERE id = ? AND organization_id = ?");
+            return $stmt->execute([$id, $this->organization_id]);
         } catch (PDOException $e) {
             error_log("Error deleting module: " . $e->getMessage());
             return false;

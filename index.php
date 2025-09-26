@@ -109,6 +109,18 @@ $allowedPages = [
     // API Handlers
     'unassign_officer',
     'assign_officer_to_activity',
+    'get_org_settings',
+    'save_org_settings',
+
+    // Time Approval
+    'time_approval',
+    'handle_time_approval',
+
+    // System Admin
+    'system_org_settings',
+    'system_rights_management',
+    'edit_role_permissions',
+    'handle_edit_role_permissions',
 ];
 
 if (in_array($page, $allowedPages)) {

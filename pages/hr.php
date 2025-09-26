@@ -53,6 +53,7 @@ include_once BASE_PATH . '/templates/header.php';
     <a href="index.php?page=add_officer" class="button">Beamten hinzufügen</a>
     <a href="index.php?page=sanctions" class="button button-secondary">Sanktionen verwalten</a>
     <a href="index.php?page=credentials" class="button button-secondary">Zugangsdaten verwalten</a>
+    <a href="index.php?page=time_approval" class="button button-secondary">Zeit-Genehmigungen</a>
 </section>
 
 
