@@ -6,81 +6,96 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 // Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['organization_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
 
-// requirePermission('hr_view'); // Will be enforced later
+// requirePermission('hr_view');
 
-// --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';
 
-// --- PAGE-SPECIFIC LOGIC ---
-$officerModel = new Officer();
+// Fix: Instantiate Officer model with the organization_id from the session
+$officerModel = new Officer($_SESSION['organization_id']);
 $officers = $officerModel->getAll();
 
-$pageTitle = 'Personalabteilung';
+$pageTitle = 'Officers';
 include_once BASE_PATH . '/templates/header.php';
 ?>
 
 <!-- Start of page-specific content -->
 <div class="flex justify-between items-center mb-6">
-    <p class="text-gray-400">Verwalten Sie hier alle Beamten Ihrer Organisation.</p>
     <div>
-        <a href="index.php?page=add_officer" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
-            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-            Beamten hinzufügen
+        <h1 class="text-3xl font-bold text-white">Officers</h1>
+        <p class="mt-1 text-brand-text-secondary">Manage all officers in your organization.</p>
+    </div>
+    <div>
+        <a href="index.php?page=add_officer" class="bg-brand-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
+            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Officer
         </a>
     </div>
 </div>
 
 <?php if (isset($_GET['status'])): ?>
-    <div class="bg-green-500 text-white p-4 rounded-lg mb-6">
+    <div class="bg-green-500/20 border border-green-500 text-green-300 p-4 rounded-lg mb-6">
         <?php
-        if ($_GET['status'] === 'officer_added') echo 'Der Beamte wurde erfolgreich hinzugefügt.';
-        if ($_GET['status'] === 'officer_updated') echo 'Der Beamte wurde erfolgreich aktualisiert.';
-        if ($_GET['status'] === 'roles_updated') echo 'Die Rollen des Beamten wurden erfolgreich aktualisiert.';
+        if ($_GET['status'] === 'officer_added') echo 'The officer was successfully added.';
+        if ($_GET['status'] === 'officer_updated') echo 'The officer was successfully updated.';
+        if ($_GET['status'] === 'roles_updated') echo 'The officer\'s roles were successfully updated.';
         ?>
     </div>
 <?php endif; ?>
 
-<div class="bg-gray-800 rounded-lg shadow overflow-hidden">
-    <table class="min-w-full">
-        <thead class="bg-gray-700">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Dienstnummer</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Rang</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Aktionen</th>
-            </tr>
-        </thead>
-        <tbody class="bg-gray-800 divide-y divide-gray-700">
-            <?php if (empty($officers)): ?>
-                <tr>
-                    <td colspan="5" class="px-6 py-4 text-center text-gray-400">Keine Beamten in der Datenbank gefunden.</td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($officers as $officer): ?>
-                    <tr class="hover:bg-gray-700">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white"><?php echo htmlspecialchars($officer['badgeNumber']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars($officer['firstName'] . ' ' . $officer['lastName']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300"><?php echo htmlspecialchars($officer['rank']); ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $officer['isActive'] ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'; ?>">
-                                <?php echo $officer['isActive'] ? 'Aktiv' : 'Inaktiv'; ?>
+<div class="bg-brand-card border border-brand-border rounded-lg shadow">
+    <!-- Search Bar -->
+    <div class="p-4 border-b border-brand-border">
+         <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-brand-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <input type="text" name="search" id="search" class="block w-full pl-10 pr-3 py-2 bg-brand-bg border border-brand-border rounded-md leading-5 text-brand-text-primary placeholder-brand-text-secondary focus:outline-none focus:bg-brand-sidebar focus:border-brand-blue" placeholder="Search officers...">
+        </div>
+    </div>
+
+    <!-- Officer List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+        <?php if (empty($officers)): ?>
+            <div class="col-span-full text-center text-brand-text-secondary py-10">
+                No officers found in the database.
+            </div>
+        <?php else: ?>
+            <?php foreach ($officers as $officer): ?>
+                <a href="index.php?page=edit_officer&id=<?php echo $officer['id']; ?>" class="block bg-brand-bg border border-brand-border rounded-lg p-4 hover:border-brand-blue transition-colors">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <span class="inline-block h-12 w-12 rounded-full overflow-hidden bg-gray-700">
+                                <svg class="h-full w-full text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
                             </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="index.php?page=edit_user_roles&officer_id=<?php echo $officer['id']; ?>" class="text-indigo-400 hover:text-indigo-300 mr-4">Rollen</a>
-                            <a href="index.php?page=edit_officer&id=<?php echo $officer['id']; ?>" class="text-indigo-400 hover:text-indigo-300">Bearbeiten</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-lg font-bold text-white"><?php echo htmlspecialchars($officer['firstName'] . ' ' . $officer['lastName']); ?></div>
+                            <div class="text-sm text-brand-text-secondary"><?php echo htmlspecialchars($officer['rank']); ?></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div class="text-sm text-brand-text-secondary">
+                            #<?php echo htmlspecialchars($officer['badgeNumber']); ?>
+                        </div>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $officer['isActive'] ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'; ?>">
+                            <?php echo $officer['isActive'] ? 'Active' : 'Inactive'; ?>
+                        </span>
+                    </div>
+                </a>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
 </div>
 <!-- End of page-specific content -->
 
