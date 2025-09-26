@@ -11,8 +11,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// TODO: Replace with a more granular permission like 'hr_manage_time_logs'
-requirePermission('hr_access');
+requirePermission('hr_time_approve');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/TimePauseLog.php';

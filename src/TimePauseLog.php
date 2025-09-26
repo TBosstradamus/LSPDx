@@ -20,6 +20,10 @@ class TimePauseLog {
         }
     }
 
+    /**
+     * Gets all pause log entries for the organization.
+     * @return array
+     */
     public function getAll() {
         try {
             $sql = "SELECT
@@ -41,10 +45,22 @@ class TimePauseLog {
         }
     }
 
+    /**
+     * Approves a pause log entry. The time counts as regular duty time.
+     * @param int $logId
+     * @param int $reviewerId
+     * @return bool
+     */
     public function approve($logId, $reviewerId) {
         return $this->updateStatus($logId, 'approved', $reviewerId);
     }
 
+    /**
+     * Rejects a pause log entry. The paused time is subtracted from the officer's total hours.
+     * @param int $logId
+     * @param int $reviewerId
+     * @return bool
+     */
     public function reject($logId, $reviewerId) {
         $this->db->beginTransaction();
         try {
@@ -56,9 +72,11 @@ class TimePauseLog {
                 throw new Exception("Log entry or duration not found.");
             }
 
+            // Subtract the duration from the officer's totalHours
             $officerStmt = $this->db->prepare("UPDATE officers SET totalHours = totalHours - ? WHERE id = ?");
             $officerStmt->execute([$log['duration'], $log['officer_id']]);
 
+            // Update the log status
             $this->updateStatus($logId, 'rejected', $reviewerId);
 
             $this->db->commit();

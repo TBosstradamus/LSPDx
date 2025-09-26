@@ -27,7 +27,9 @@ include_once BASE_PATH . '/templates/header.php';
 <!-- Start of page-specific content -->
 <div style="display: flex; justify-content: space-between; align-items: center;">
     <p>Verwalten Sie hier den gesamten Fuhrpark des LSPD.</p>
-    <a href="index.php?page=add_vehicle" class="button">Fahrzeug hinzufügen</a>
+    <?php if (hasPermission('fleet_manage')): ?>
+        <a href="index.php?page=add_vehicle" class="button">Fahrzeug hinzufügen</a>
+    <?php endif; ?>
 </div>
 
 <?php if (isset($_GET['status'])): ?>
@@ -57,7 +59,9 @@ include_once BASE_PATH . '/templates/header.php';
                 <th>Kilometerstand</th>
                 <th>Letzter Checkup</th>
                 <th>Nächster Checkup</th>
-                <th>Aktionen</th>
+                <?php if (hasPermission('fleet_manage')): ?>
+                    <th>Aktionen</th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -74,15 +78,17 @@ include_once BASE_PATH . '/templates/header.php';
                         <td><?php echo htmlspecialchars(number_format($vehicle['mileage'], 0, ',', '.')); ?> km</td>
                         <td><?php echo htmlspecialchars($vehicle['lastCheckup'] ? date('d.m.Y', strtotime($vehicle['lastCheckup'])) : 'N/A'); ?></td>
                         <td><?php echo htmlspecialchars($vehicle['nextCheckup'] ? date('d.m.Y', strtotime($vehicle['nextCheckup'])) : 'N/A'); ?></td>
-                        <td>
-                            <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="button button-secondary">Bearbeiten</a>
-                            <form action="index.php?page=handle_delete_vehicle" method="POST" style="display: inline;">
-                                <input type="hidden" name="id" value="<?php echo $vehicle['id']; ?>">
-                                <button type="submit" class="button button-danger" onclick="return confirm('Sind Sie sicher, dass Sie dieses Fahrzeug löschen möchten?');">
-                                    Löschen
-                                </button>
-                            </form>
-                        </td>
+                        <?php if (hasPermission('fleet_manage')): ?>
+                            <td>
+                                <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="button button-secondary">Bearbeiten</a>
+                                <form action="index.php?page=handle_delete_vehicle" method="POST" style="display: inline;">
+                                    <input type="hidden" name="id" value="<?php echo $vehicle['id']; ?>">
+                                    <button type="submit" class="button button-danger" onclick="return confirm('Sind Sie sicher, dass Sie dieses Fahrzeug löschen möchten?');">
+                                        Löschen
+                                    </button>
+                                </form>
+                            </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>

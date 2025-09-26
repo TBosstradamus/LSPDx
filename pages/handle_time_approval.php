@@ -17,8 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Replace with a more granular permission
-requirePermission('hr_access');
+requirePermission('hr_time_approve');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/TimePauseLog.php';

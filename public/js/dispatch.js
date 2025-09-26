@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (officer) {
                     roleElement.textContent = `${officer.lastName}, ${officer.firstName}`;
                     roleElementContainer.draggable = true;
-                    roleElementContainer.dataset.officerId = officer.officer_id;
+                    roleElementContainer.dataset.officerId = officer.id; // Corrected from officer_id
                 } else {
                     roleElement.textContent = '--';
                     roleElementContainer.draggable = false;
@@ -127,12 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activityOfficers) return;
 
         activityOfficers.forEach(officer => {
-            const zone = activityZonesContainer.querySelector(`[data-activity-name="${officer.activity_name}"] .activity-officers`);
+            const zone = activityZonesContainer.querySelector(`[data-activity-name="${officer.assignment_id}"] .activity-officers`);
             if (zone) {
                 const officerCard = document.createElement('div');
                 officerCard.className = 'officer-card';
                 officerCard.draggable = true;
-                officerCard.dataset.officerId = officer.officer_id;
+                officerCard.dataset.officerId = officer.id; // Corrected from officer_id
                 officerCard.innerHTML = `<strong>${officer.lastName}, ${officer.firstName}</strong><span>#${officer.badgeNumber}</span>`;
                 zone.appendChild(officerCard);
             }
