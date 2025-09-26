@@ -40,6 +40,8 @@ $pageRoutes = [
     'it_logs',
     'time_approval',
     'handle_time_approval',
+    'edit_user_roles',
+    'handle_edit_user_roles',
 ];
 
 $apiRoutes = [

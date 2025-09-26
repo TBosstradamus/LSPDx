@@ -2,26 +2,43 @@
 if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     http_response_code(403); die('Forbidden');
 }
-if (!isset($_SESSION['user_id'])) {
+
+// Ensure user is authenticated
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['officer_id'])) {
     header('Location: index.php?page=login'); exit;
 }
 
+// This page requires authentication, so Auth should have been checked already,
+// and $_SESSION['organization_id'] should be set.
 require_once BASE_PATH . '/src/Officer.php';
 require_once BASE_PATH . '/src/TimeClock.php';
-// require_once BASE_PATH . '/src/License.php'; // Will be re-added later
 
+// We instantiate the Officer model using the organization_id from the session.
 $officerModel = new Officer();
-$currentUser = $officerModel->findById($_SESSION['officer_id']);
+$currentUser = $officerModel->findByIdInOrg($_SESSION['officer_id']);
 
-$timeClockModel = new TimeClock();
-$currentClockIn = $timeClockModel->getCurrentStatus($currentUser['id']);
+if (!$currentUser) {
+    // If the officer can't be found in their own organization, something is wrong.
+    // Log out for safety.
+    error_log("Could not find officer with ID {$_SESSION['officer_id']} in organization {$_SESSION['organization_id']}");
+    header('Location: index.php?page=logout'); exit;
+}
+
+// Now that we have the user and we are sure they belong to the session's organization,
+// we can safely instantiate the TimeClock model for that organization.
+try {
+    $timeClockModel = new TimeClock($currentUser['organization_id']);
+    $currentClockIn = $timeClockModel->getCurrentStatus($currentUser['id']);
+} catch (InvalidArgumentException $e) {
+    // Handle the case where TimeClock fails to initialize, though it shouldn't with this logic.
+    error_log($e->getMessage());
+    // Display a user-friendly error instead of crashing.
+    die("Ein kritischer Fehler ist aufgetreten. Die Stempeluhr-Funktion ist nicht verfügbar.");
+}
+
 
 // Placeholder for licenses
 $licenses = [];
-
-if (!$currentUser) {
-    header('Location: index.php?page=logout'); exit;
-}
 
 function formatDuration($totalSeconds) {
     if (!$totalSeconds || $totalSeconds < 0) return '0 Std. 0 Min.';

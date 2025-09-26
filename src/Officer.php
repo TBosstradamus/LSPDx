@@ -9,18 +9,34 @@ require_once __DIR__ . '/Database.php';
 
 class Officer {
     private $db;
+    private $organization_id;
 
-    public function __construct() {
+    // Allow creating the model with a specific org_id, or use the session's default.
+    public function __construct($organization_id = null) {
         $this->db = Database::getInstance()->getConnection();
+        if ($organization_id) {
+            $this->organization_id = $organization_id;
+        } elseif (isset($_SESSION['organization_id'])) {
+            $this->organization_id = $_SESSION['organization_id'];
+        } else {
+            // Don't die, but log an error. The calling code should handle this.
+            error_log("Officer class instantiated without organization_id.");
+            // We can't throw an exception here as it might break pages that don't need org context yet.
+            // This is a transitional state.
+        }
     }
 
-    /**
-     * Fetches all officers from the database.
-     * @return array An array of all officers.
-     */
+    private function checkOrgId() {
+        if (!$this->organization_id) {
+            throw new Exception("Organization ID is not set for Officer model.");
+        }
+    }
+
     public function getAll() {
+        $this->checkOrgId();
         try {
-            $stmt = $this->db->query("SELECT * FROM officers ORDER BY lastName, firstName");
+            $stmt = $this->db->prepare("SELECT * FROM officers WHERE organization_id = ? ORDER BY lastName, firstName");
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching officers: " . $e->getMessage());
@@ -28,13 +44,11 @@ class Officer {
         }
     }
 
-    /**
-     * Fetches a single officer by their ID.
-     * @param int $id The ID of the officer.
-     * @return array|false The officer's data or false if not found.
-     */
+    // findById should NOT be restricted by organization, as we might need to look up users across orgs (e.g. for system admins)
+    // However, for most operations within a tenant, we need to find by ID *and* org_id.
     public function findById($id) {
         try {
+            // This now returns the organization_id, which is crucial.
             $stmt = $this->db->prepare("SELECT * FROM officers WHERE id = ?");
             $stmt->execute([$id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -44,22 +58,33 @@ class Officer {
         }
     }
 
-    /**
-     * Creates a new officer.
-     * @param array $data The officer's data from the form.
-     * @return int|false The ID of the new officer or false on failure.
-     */
+    // A secure version of findById for tenant-specific operations.
+    public function findByIdInOrg($id) {
+        $this->checkOrgId();
+         try {
+            $stmt = $this->db->prepare("SELECT * FROM officers WHERE id = ? AND organization_id = ?");
+            $stmt->execute([$id, $this->organization_id]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error finding officer by ID in org: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
     public function create($data) {
+        $this->checkOrgId();
         if (empty($data['firstName']) || empty($data['lastName']) || empty($data['badgeNumber']) || empty($data['rank'])) {
             return false;
         }
 
         try {
-            $sql = "INSERT INTO officers (firstName, lastName, badgeNumber, phoneNumber, gender, rank, isActive)
-                    VALUES (?, ?, ?, ?, ?, ?, TRUE)";
+            $sql = "INSERT INTO officers (organization_id, firstName, lastName, badgeNumber, phoneNumber, gender, rank, isActive)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
+                $this->organization_id,
                 $data['firstName'],
                 $data['lastName'],
                 $data['badgeNumber'],
@@ -74,13 +99,8 @@ class Officer {
         }
     }
 
-    /**
-     * Updates an officer's data.
-     * @param int $id The ID of the officer to update.
-     * @param array $data The new data for the officer.
-     * @return bool True on success, false on failure.
-     */
     public function update($id, $data) {
+        $this->checkOrgId();
         if (empty($id) || empty($data['firstName']) || empty($data['lastName']) || empty($data['badgeNumber']) || empty($data['rank'])) {
             return false;
         }
@@ -89,7 +109,7 @@ class Officer {
             $sql = "UPDATE officers SET
                         firstName = ?, lastName = ?, badgeNumber = ?, phoneNumber = ?,
                         gender = ?, rank = ?, isActive = ?
-                    WHERE id = ?";
+                    WHERE id = ? AND organization_id = ?";
 
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
@@ -100,7 +120,8 @@ class Officer {
                 $data['gender'],
                 $data['rank'],
                 filter_var($data['isActive'], FILTER_VALIDATE_BOOLEAN),
-                $id
+                $id,
+                $this->organization_id
             ]);
         } catch (PDOException $e) {
             error_log("Error updating officer: " . $e->getMessage());
