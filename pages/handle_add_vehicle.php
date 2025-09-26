@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check here
+requirePermission('fleet_manage');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Vehicle.php';

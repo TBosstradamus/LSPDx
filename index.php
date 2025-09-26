@@ -19,6 +19,7 @@ define('BASE_PATH', __DIR__);
 require_once BASE_PATH . '/config.php';
 require_once BASE_PATH . '/src/Database.php';
 require_once BASE_PATH . '/src/Auth.php';
+require_once BASE_PATH . '/src/auth_helpers.php';
 
 
 // --- ROUTING ---
@@ -96,6 +97,14 @@ $allowedPages = [
     'compose_email',
     'handle_compose_email',
     'view_email',
+
+    // Other handlers and pages
+    'fleet_management',
+    'handle_toggle_vehicle_duty',
+    'handle_clock_in',
+    'handle_clock_out',
+    'edit_user_roles',
+    'handle_edit_user_roles',
 ];
 
 if (in_array($page, $allowedPages)) {

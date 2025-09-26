@@ -284,8 +284,96 @@ CREATE TABLE `email_recipients` (
 INSERT INTO `officers` (`id`, `badgeNumber`, `firstName`, `lastName`, `gender`, `rank`, `isActive`) VALUES (1, '001', 'Admin', 'User', 'male', 'Chief of Police', 1);
 -- The password is 'password'. A bcrypt hash for this is generated here.
 INSERT INTO `users` (`officer_id`, `username`, `password_hash`) VALUES (1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
--- Assign to 'Admin' department (ID should be 9 based on default data)
-INSERT INTO `officer_departments` (`officer_id`, `department_id`) VALUES (1, 9);
+
+--
+-- Table structure for roles and permissions
+--
+DROP TABLE IF EXISTS `roles`;
+CREATE TABLE `roles` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL UNIQUE,
+  `description` VARCHAR(255),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `permissions`;
+CREATE TABLE `permissions` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL UNIQUE,
+  `description` VARCHAR(255),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `role_permissions`;
+CREATE TABLE `role_permissions` (
+  `role_id` INT NOT NULL,
+  `permission_id` INT NOT NULL,
+  PRIMARY KEY (`role_id`, `permission_id`),
+  FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `user_roles`;
+CREATE TABLE `user_roles` (
+  `officer_id` INT NOT NULL,
+  `role_id` INT NOT NULL,
+  PRIMARY KEY (`officer_id`, `role_id`),
+  FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Insert default roles and permissions
+--
+INSERT INTO `roles` (`id`, `name`, `description`) VALUES
+(1, 'Admin', 'Vollzugriff auf alle Systembereiche'),
+(2, 'FTO', 'Zugriff auf FTO-Checklisten und Trainings-Module'),
+(3, 'Personalabteilung', 'Zugriff auf HR-Funktionen wie Beamtenverwaltung und Sanktionen'),
+(4, 'Fuhrparkmanager', 'Zugriff auf die Verwaltung der Fahrzeug-Stammdaten'),
+(5, 'Beamter', 'Standard-Zugriff auf eigene Daten und Dispatch');
+
+-- Assign default admin user to the 'Admin' role
+INSERT INTO `user_roles` (`officer_id`, `role_id`) VALUES (1, 1);
+
+--
+-- Insert Permissions
+--
+INSERT INTO `permissions` (`id`, `name`, `description`) VALUES
+(1, 'admin_area_access', 'Voller Zugriff auf alle administrativen Funktionen'),
+(2, 'dispatch_access', 'Zugriff auf das Dispatch Board'),
+(3, 'hr_access', 'Zugriff auf den Personalbereich'),
+(4, 'hr_manage_officers', 'Kann Beamte hinzufügen und bearbeiten'),
+(5, 'hr_manage_roles', 'Kann Benutzern Rollen zuweisen'),
+(6, 'hr_manage_sanctions', 'Kann Sanktionen verhängen'),
+(7, 'hr_manage_credentials', 'Kann Passwörter zurücksetzen'),
+(8, 'fleet_access', 'Zugriff auf die Fuhrpark-Stammdaten'),
+(9, 'fleet_manage', 'Kann Fahrzeuge hinzufügen, bearbeiten und löschen'),
+(10, 'fleet_duty_manage', 'Kann Fahrzeuge in den Dienst stellen'),
+(11, 'fto_access', 'Zugriff auf den FTO-Bereich'),
+(12, 'fto_manage_checklists', 'Kann Checklisten bearbeiten und zuweisen'),
+(13, 'training_access', 'Zugriff auf Trainings-Module'),
+(14, 'training_manage', 'Kann Trainings-Module erstellen und löschen'),
+(15, 'documents_access', 'Zugriff auf Dokumente'),
+(16, 'documents_manage', 'Kann Dokumente erstellen und löschen'),
+(17, 'logs_access', 'Zugriff auf die IT-Systemprotokolle');
+
+--
+-- Assign Permissions to Roles
+--
+-- Admin (Role 1) gets all permissions
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) SELECT 1, id FROM permissions;
+
+-- Personalabteilung (Role 3)
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (3, 3), (3, 4), (3, 6);
+
+-- FTO (Role 2)
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (2, 11), (2, 12);
+
+-- Fuhrparkmanager (Role 4)
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (4, 8), (4, 9), (4, 10);
+
+-- Beamter (Role 5) gets basic access
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (5, 2), (5, 13), (5, 15);
 
 
 SET foreign_key_checks = 1;

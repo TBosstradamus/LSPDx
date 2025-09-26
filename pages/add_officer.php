@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check here to ensure only authorized users (e.g., HR) can add officers.
+requirePermission('hr_manage_officers');
 
 // --- TEMPLATE ---
 $pageTitle = 'Beamten hinzufügen';

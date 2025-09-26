@@ -125,8 +125,8 @@ class Vehicle {
             $stmt->bindParam(':capacity', $data['capacity'], PDO::PARAM_INT);
             $stmt->bindParam(':licensePlate', $data['licensePlate']);
             $stmt->bindParam(':mileage', $data['mileage'], PDO::PARAM_INT);
-            $stmt->bindParam(':lastCheckup', $data['lastCheckup'] ?: null);
-            $stmt->bindParam(':nextCheckup', $data['nextCheckup'] ?: null);
+            $stmt->bindValue(':lastCheckup', !empty($data['lastCheckup']) ? $data['lastCheckup'] : null);
+            $stmt->bindValue(':nextCheckup', !empty($data['nextCheckup']) ? $data['nextCheckup'] : null);
 
             if ($stmt->execute()) {
                 return $this->db->lastInsertId();
@@ -167,8 +167,8 @@ class Vehicle {
             $stmt->bindParam(':capacity', $data['capacity'], PDO::PARAM_INT);
             $stmt->bindParam(':licensePlate', $data['licensePlate']);
             $stmt->bindParam(':mileage', $data['mileage'], PDO::PARAM_INT);
-            $stmt->bindParam(':lastCheckup', $data['lastCheckup'] ?: null);
-            $stmt->bindParam(':nextCheckup', $data['nextCheckup'] ?: null);
+            $stmt->bindValue(':lastCheckup', !empty($data['lastCheckup']) ? $data['lastCheckup'] : null);
+            $stmt->bindValue(':nextCheckup', !empty($data['nextCheckup']) ? $data['nextCheckup'] : null);
 
             return $stmt->execute();
         } catch (PDOException $e) {

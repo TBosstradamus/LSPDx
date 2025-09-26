@@ -33,22 +33,35 @@ $pageGroups = [
                 <!-- Group 1: Hauptmenü -->
                 <h3 class="nav-heading">Hauptmenü</h3>
                 <a href="index.php?page=dashboard" class="<?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>">Dashboard</a>
-                <a href="index.php?page=dispatch" class="<?php echo ($currentPage === 'dispatch') ? 'active' : ''; ?>">Dispatch</a>
+                <?php if (hasPermission('dispatch_access')): ?>
+                    <a href="index.php?page=dispatch" class="<?php echo ($currentPage === 'dispatch') ? 'active' : ''; ?>">Dispatch</a>
+                <?php endif; ?>
                 <a href="index.php?page=mein_dienst" class="<?php echo ($currentPage === 'mein_dienst') ? 'active' : ''; ?>">Mein Dienst</a>
                 <a href="index.php?page=mailbox" class="<?php echo ($currentPage === 'mailbox') ? 'active' : ''; ?>">Postfach</a>
 
                 <!-- Group 2: Verwaltung -->
                 <h3 class="nav-heading">Verwaltung</h3>
-                <a href="index.php?page=hr" class="<?php echo ($currentPage === 'hr') ? 'active' : ''; ?>">Personal</a>
-                <a href="index.php?page=fuhrpark" class="<?php echo ($currentPage === 'fuhrpark') ? 'active' : ''; ?>">Fuhrpark</a>
-                <a href="index.php?page=checklists" class="<?php echo ($currentPage === 'checklists') ? 'active' : ''; ?>">FTO Checklisten</a>
-                <a href="index.php?page=training_modules" class="<?php echo ($currentPage === 'training_modules') ? 'active' : ''; ?>">Trainings-Module</a>
-                <a href="index.php?page=documents" class="<?php echo ($currentPage === 'documents') ? 'active' : ''; ?>">Dokumente</a>
+                <?php if (hasPermission('hr_access')): ?>
+                    <a href="index.php?page=hr" class="<?php echo ($currentPage === 'hr') ? 'active' : ''; ?>">Personal</a>
+                <?php endif; ?>
+                <?php if (hasPermission('fleet_access')): ?>
+                    <a href="index.php?page=fuhrpark" class="<?php echo ($currentPage === 'fuhrpark') ? 'active' : ''; ?>">Fuhrpark</a>
+                <?php endif; ?>
+                <?php if (hasPermission('fto_access')): ?>
+                    <a href="index.php?page=checklists" class="<?php echo ($currentPage === 'checklists') ? 'active' : ''; ?>">FTO Checklisten</a>
+                <?php endif; ?>
+                <?php if (hasPermission('training_access')): ?>
+                    <a href="index.php?page=training_modules" class="<?php echo ($currentPage === 'training_modules') ? 'active' : ''; ?>">Trainings-Module</a>
+                <?php endif; ?>
+                 <?php if (hasPermission('documents_access')): ?>
+                    <a href="index.php?page=documents" class="<?php echo ($currentPage === 'documents') ? 'active' : ''; ?>">Dokumente</a>
+                <?php endif; ?>
 
                 <!-- Group 3: System -->
-                <h3 class="nav-heading">System</h3>
-                 <a href="index.php?page=it_logs" class="<?php echo ($currentPage === 'it_logs') ? 'active' : ''; ?>">IT-Protokolle</a>
-
+                <?php if (hasPermission('logs_access')): ?>
+                    <h3 class="nav-heading">System</h3>
+                    <a href="index.php?page=it_logs" class="<?php echo ($currentPage === 'it_logs') ? 'active' : ''; ?>">IT-Protokolle</a>
+                <?php endif; ?>
             </nav>
             <a href="index.php?page=logout" class="logout-link">Abmelden</a>
         </aside>

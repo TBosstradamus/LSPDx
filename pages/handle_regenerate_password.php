@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check for Admin/HR Lead
+requirePermission('hr_manage_credentials');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Auth.php';

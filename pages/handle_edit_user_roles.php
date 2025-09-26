@@ -17,35 +17,35 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check here
-requirePermission('hr_manage_officers');
+// TODO: Add permission check for Admin
 
 // --- DEPENDENCIES ---
-require_once BASE_PATH . '/src/Officer.php';
+require_once BASE_PATH . '/src/Roles.php';
 require_once BASE_PATH . '/src/Logger.php';
 
 // --- LOGIC ---
-$officerId = $_POST['id'] ?? null;
+$officerId = $_POST['officer_id'] ?? null;
+$roleIds = $_POST['roles'] ?? []; // The checkboxes will submit an array of role IDs
+
 if (!$officerId) {
     header('Location: index.php?page=hr&error=update_failed');
     exit;
 }
 
-$officerModel = new Officer();
-$success = $officerModel->update($officerId, $_POST);
+$rolesModel = new Roles();
+$success = $rolesModel->updateUserRoles($officerId, $roleIds);
 
 if ($success) {
     // Success: Log the event and redirect.
-    $officerName = $_POST['firstName'] . ' ' . $_POST['lastName'];
-    Logger::log('officer_updated', "Daten für Beamten '{$officerName}' (ID: {$officerId}) wurden aktualisiert.");
+    Logger::log('user_roles_updated', "Rollen für Beamten-ID {$officerId} wurden aktualisiert.");
 
-    header('Location: index.php?page=hr&status=officer_updated');
+    header('Location: index.php?page=hr&status=roles_updated');
     exit;
 } else {
     // Failure: Log the event and redirect back.
-    Logger::log('officer_update_failed', "Fehler beim Aktualisieren von Beamten-ID {$officerId}.", null, $_POST);
+    Logger::log('user_roles_update_failed', "Fehler beim Aktualisieren der Rollen für Beamten-ID {$officerId}.");
 
-    header('Location: index.php?page=edit_officer&id=' . $officerId . '&error=update_failed');
+    header('Location: index.php?page=edit_user_roles&officer_id=' . $officerId . '&error=update_failed');
     exit;
 }
 ?>

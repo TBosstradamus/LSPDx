@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Add permission check here
+requirePermission('documents_manage');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Document.php';

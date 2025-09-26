@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // TODO: Add permission check here
+requirePermission('hr_manage_officers');
 
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Officer.php';

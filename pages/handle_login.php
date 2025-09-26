@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // --- DEPENDENCIES ---
 require_once BASE_PATH . '/src/Database.php';
 require_once BASE_PATH . '/src/Auth.php';
+require_once BASE_PATH . '/src/Roles.php';
 require_once BASE_PATH . '/src/Logger.php';
 
 // --- LOGIN LOGIC ---
@@ -34,6 +35,10 @@ if ($user) {
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['officer_id'] = $user['officer_id'];
     $_SESSION['username'] = $user['username'];
+
+    // Fetch and store user permissions in the session
+    $rolesModel = new Roles();
+    $_SESSION['permissions'] = $rolesModel->getPermissionsForUser($user['officer_id']);
 
     Logger::log('login_success', "Benutzer '{$username}' hat sich erfolgreich angemeldet.", $user['officer_id']);
 
