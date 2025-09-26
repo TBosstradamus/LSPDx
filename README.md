@@ -47,17 +47,14 @@ Folgen Sie diesen Schritten, um die Anwendung auf Ihrem Webspace zu installieren
 1.  **FTP-Zugang nutzen**: Verbinden Sie sich mit einem FTP-Programm (z.B. FileZilla) mit Ihrem Webspace.
 2.  **Dateien kopieren**: Laden Sie alle Dateien und Ordner dieses Projekts in das gewünschte Verzeichnis auf Ihrem Webspace hoch (z.B. in einen Unterordner wie `/lspd-tool`).
 
-### 4. Ersten Benutzer anlegen (WICHTIG)
+### 4. Erster Login
 
-Die Anwendung hat nach der Installation noch keine Benutzer. Sie müssen den ersten Administrator-Account manuell anlegen.
+Die `setup.sql`-Datei erstellt automatisch einen Standard-Administrator, damit Sie sich sofort anmelden können.
 
-1.  **phpMyAdmin öffnen**: Gehen Sie erneut zu Ihrer Datenbank in phpMyAdmin.
-2.  **`officers`-Tabelle**: Klicken Sie auf die Tabelle `officers` und dann auf den Reiter "Einfügen". Erstellen Sie einen neuen Beamten (z.B. mit Ihrem Namen) und merken Sie sich die `id` (sollte `1` sein).
-3.  **`users`-Tabelle**: Klicken Sie auf die Tabelle `users` und dann auf "Einfügen".
-    *   `officer_id`: Tragen Sie hier die `id` des soeben erstellten Beamten ein (z.B. `1`).
-    *   `username`: Wählen Sie einen Benutzernamen (z.B. `admin`).
-    *   `password_hash`: **Sehr wichtig!** Wählen Sie bei der Funktion `VARCHAR(255)` die Option `PASSWORD` aus dem Dropdown-Menü aus. Geben Sie dann im Feld daneben Ihr gewünschtes Passwort ein. phpMyAdmin wird es automatisch sicher hashen.
-4.  **Admin-Rechte zuweisen (Optional)**: Um sich selbst zum Admin zu machen, gehen Sie zur Tabelle `officer_departments`, klicken auf "Einfügen" und tragen Ihre `officer_id` und die `department_id` für "Admin" ein (diese ist standardmäßig `9`).
+*   **Benutzername**: `admin`
+*   **Passwort**: `password`
+
+**Sicherheitshinweis:** Es wird dringend empfohlen, dieses Passwort sofort nach dem ersten Login zu ändern. Sie können dies tun, indem Sie sich als Admin einloggen, zur Personalverwaltung gehen, einen neuen permanenten Administrator-Account für sich selbst erstellen und anschließend das Standard-`admin`-Konto löschen oder dessen Passwort über die "Zugangsdaten verwalten"-Funktion ändern.
 
 ### 5. Anwendung aufrufen
 
