@@ -3,16 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const vehicleGrid = document.getElementById('vehicle-grid');
     const headerRoles = document.getElementById('header-role-container');
     const activityZones = document.getElementById('activity-zones');
+    const alarmAudio = document.getElementById('shots-fired-alarm');
 
     let draggedOfficer = null;
+    const SHOTS_FIRED_STATUS = 10; // The status code for "Shots Fired"
 
     // --- DATA FETCHING ---
     async function fetchData() {
         try {
             const response = await fetch('index.php?page=dispatch_status');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
             populateUI(data);
         } catch (error) {
@@ -25,12 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateUI(data) {
         officerList.innerHTML = '';
         vehicleGrid.innerHTML = '';
-        document.querySelectorAll('.role-officer').forEach(el => el.innerHTML = '');
-        document.querySelectorAll('.activity-officers').forEach(el => el.innerHTML = '');
+        document.querySelectorAll('.role-officer, .activity-officers').forEach(el => el.innerHTML = '');
 
-        data.officers.available.forEach(officer => {
-            officerList.appendChild(createOfficerElement(officer));
-        });
+        data.officers.available.forEach(officer => officerList.appendChild(createOfficerElement(officer)));
 
         data.vehicles.forEach(vehicle => {
             const vehicleEl = createVehicleElement(vehicle);
@@ -46,17 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
         data.assignments.header.forEach(assignment => {
             const roleContainer = headerRoles.querySelector(`.header-role-wrapper[data-role-name="${assignment.assignment_id}"] .role-officer`);
             const officer = data.officers.all.find(o => o.id === assignment.officer_id);
-            if (roleContainer && officer) {
-                roleContainer.appendChild(createOfficerElement(officer));
-            }
+            if (roleContainer && officer) roleContainer.appendChild(createOfficerElement(officer));
         });
 
         data.assignments.activity.forEach(assignment => {
             const activityEl = activityZones.querySelector(`.activity-zone[data-activity-name="${assignment.assignment_id}"] .activity-officers`);
             const officer = data.officers.all.find(o => o.id === assignment.officer_id);
-            if (activityEl && officer) {
-                activityEl.appendChild(createOfficerElement(officer));
-            }
+            if (activityEl && officer) activityEl.appendChild(createOfficerElement(officer));
         });
     }
 
@@ -68,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         el.dataset.officerId = officer.id;
         el.innerHTML = `<span class="font-bold text-white">${officer.lastName}, ${officer.firstName}</span>`;
         el.addEventListener('dragstart', handleDragStart);
-        el.addEventListener('dragend', handleDragEnd);
         return el;
     }
 
@@ -76,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.createElement('div');
         el.className = 'vehicle-card bg-brand-bg border border-brand-border rounded-lg p-3 flex flex-col gap-2';
         el.dataset.vehicleId = vehicle.id;
+
+        if (parseInt(vehicle.current_status, 10) === SHOTS_FIRED_STATUS) {
+            el.classList.add('shots-fired-alarm');
+        }
 
         let seatsHTML = '';
         for (let i = 0; i < vehicle.capacity; i++) {
@@ -92,39 +88,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         el.innerHTML = `
-            <div class="flex justify-between items-center">
-                <h4 class="font-bold text-white">${vehicle.name}</h4>
-                <span class="text-xs font-mono px-2 py-1 bg-gray-700 rounded">${vehicle.licensePlate}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                ${seatsHTML}
-            </div>
-            <div class="grid grid-cols-1 gap-2 mt-1">
-                 <select class="vehicle-status-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1">
-                    ${statusOptions}
-                </select>
-            </div>
-            <div class="grid grid-cols-2 gap-2 mt-1">
-                <select class="vehicle-funk-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1">
-                    <option value="">Funk...</option>
-                    ${funkOptions}
-                </select>
-                <select class="vehicle-callsign-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1">
-                    <option value="">Callsign...</option>
-                    ${callsignOptions}
-                </select>
-            </div>
+            <div class="flex justify-between items-center"><h4 class="font-bold text-white">${vehicle.name}</h4><span class="text-xs font-mono px-2 py-1 bg-gray-700 rounded">${vehicle.licensePlate}</span></div>
+            <div class="grid grid-cols-2 gap-2">${seatsHTML}</div>
+            <div class="grid grid-cols-1 gap-2 mt-1"><select class="vehicle-status-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1">${statusOptions}</select></div>
+            <div class="grid grid-cols-2 gap-2 mt-1"><select class="vehicle-funk-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1"><option value="">Funk...</option>${funkOptions}</select><select class="vehicle-callsign-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1"><option value="">Callsign...</option>${callsignOptions}</select></div>
         `;
 
-        el.querySelector('.vehicle-status-select').addEventListener('change', (e) => {
-            setVehicleStatus(vehicle.id, e.target.value);
-        });
-        el.querySelector('.vehicle-funk-select').addEventListener('change', (e) => {
-            setVehicleFunk(vehicle.id, e.target.value);
-        });
-        el.querySelector('.vehicle-callsign-select').addEventListener('change', (e) => {
-            setVehicleCallsign(vehicle.id, e.target.value);
-        });
+        el.querySelector('.vehicle-status-select').addEventListener('change', (e) => setVehicleStatus(vehicle.id, e.target.value));
+        el.querySelector('.vehicle-funk-select').addEventListener('change', (e) => setVehicleFunk(vehicle.id, e.target.value));
+        el.querySelector('.vehicle-callsign-select').addEventListener('change', (e) => setVehicleCallsign(vehicle.id, e.target.value));
 
         return el;
     }
@@ -134,84 +106,61 @@ document.addEventListener('DOMContentLoaded', () => {
         draggedOfficer = e.target;
         setTimeout(() => e.target.style.display = 'none', 0);
     }
-
     function handleDragEnd(e) {
         draggedOfficer.style.display = 'flex';
         draggedOfficer = null;
     }
-
-    function handleDragOver(e) {
-        e.preventDefault();
-    }
-
+    function handleDragOver(e) { e.preventDefault(); }
     function handleDrop(e, targetElement) {
         e.preventDefault();
         if (!draggedOfficer) return;
-
         const officerId = draggedOfficer.dataset.officerId;
-
         if (targetElement.children.length > 0 && !targetElement.id === 'officer-list') return;
 
-        if (targetElement.classList.contains('vehicle-seat')) {
+        const targetClasses = targetElement.classList;
+        if (targetClasses.contains('vehicle-seat')) {
             const vehicleId = targetElement.closest('.vehicle-card').dataset.vehicleId;
-            const seatIndex = targetElement.dataset.seatIndex;
             targetElement.appendChild(draggedOfficer);
-            assignOfficerToVehicle(officerId, vehicleId, seatIndex);
+            assignOfficerToVehicle(officerId, vehicleId, targetElement.dataset.seatIndex);
         } else if (targetElement.id === 'officer-list') {
             targetElement.appendChild(draggedOfficer);
             unassignOfficer(officerId);
-        } else if (targetElement.classList.contains('role-officer')) {
-            const roleName = targetElement.closest('.header-role-wrapper').dataset.roleName;
+        } else if (targetClasses.contains('role-officer')) {
             targetElement.appendChild(draggedOfficer);
-            assignOfficerToHeader(officerId, roleName);
-        } else if (targetElement.classList.contains('activity-officers')) {
-            const activityName = targetElement.closest('.activity-zone').dataset.activityName;
+            assignOfficerToHeader(officerId, targetElement.closest('.header-role-wrapper').dataset.roleName);
+        } else if (targetClasses.contains('activity-officers')) {
             targetElement.appendChild(draggedOfficer);
-            assignOfficerToActivity(officerId, activityName);
+            assignOfficerToActivity(officerId, targetElement.closest('.activity-zone').dataset.activityName);
         }
     }
 
     // --- API CALLS ---
-    async function assignOfficerToVehicle(officerId, vehicleId, seatIndex) {
-        await postRequest('index.php?page=assign_officer_to_vehicle', { officerId, vehicleId, seatIndex });
-    }
-    async function unassignOfficer(officerId) {
-        await postRequest('index.php?page=unassign_officer', { officerId });
-    }
-    async function assignOfficerToHeader(officerId, roleName) {
-        await postRequest('index.php?page=assign_officer_to_header', { officerId, roleName });
-    }
-    async function assignOfficerToActivity(officerId, activityName) {
-        await postRequest('index.php?page=assign_officer_to_activity', { officerId, activityName });
-    }
-    async function setVehicleFunk(vehicleId, funk) {
-        await postRequest('index.php?page=set_vehicle_funk', { vehicleId, funk });
-    }
-    async function setVehicleCallsign(vehicleId, callsign) {
-        await postRequest('index.php?page=set_vehicle_callsign', { vehicleId, callsign });
-    }
-    async function setVehicleStatus(vehicleId, status) {
-        await postRequest('index.php?page=set_vehicle_status', { vehicleId, status });
-    }
-
     async function postRequest(url, data) {
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (!response.ok) throw new Error(`Request failed: ${response.statusText}`);
         } catch (error) {
             console.error(`Error posting to ${url}:`, error);
             fetchData();
         }
     }
+    async function assignOfficerToVehicle(officerId, vehicleId, seatIndex) { await postRequest('index.php?page=assign_officer_to_vehicle', { officerId, vehicleId, seatIndex }); }
+    async function unassignOfficer(officerId) { await postRequest('index.php?page=unassign_officer', { officerId }); }
+    async function assignOfficerToHeader(officerId, roleName) { await postRequest('index.php?page=assign_officer_to_header', { officerId, roleName }); }
+    async function assignOfficerToActivity(officerId, activityName) { await postRequest('index.php?page=assign_officer_to_activity', { officerId, activityName }); }
+    async function setVehicleFunk(vehicleId, funk) { await postRequest('index.php?page=set_vehicle_funk', { vehicleId, funk }); }
+    async function setVehicleCallsign(vehicleId, callsign) { await postRequest('index.php?page=set_vehicle_callsign', { vehicleId, callsign }); }
+    async function setVehicleStatus(vehicleId, status) {
+        if (parseInt(status, 10) === SHOTS_FIRED_STATUS) {
+            alarmAudio.play().catch(e => console.error("Alarm audio failed to play:", e));
+        }
+        document.querySelector(`.vehicle-card[data-vehicle-id="${vehicleId}"]`)?.classList.toggle('shots-fired-alarm', parseInt(status, 10) === SHOTS_FIRED_STATUS);
+        await postRequest('index.php?page=set_vehicle_status', { vehicleId, status });
+    }
 
     // --- EVENT LISTENERS ---
     officerList.addEventListener('dragover', handleDragOver);
     officerList.addEventListener('drop', (e) => handleDrop(e, officerList));
-
     document.body.addEventListener('dragover', handleDragOver);
     document.body.addEventListener('drop', (e) => {
         const seat = e.target.closest('.vehicle-seat');
@@ -227,16 +176,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const openCallsignModalBtn = document.getElementById('open-callsign-modal');
     const closeCallsignModalBtn = document.getElementById('close-callsign-modal');
     const modalBody = document.getElementById('callsign-modal-body');
-
     openCallsignModalBtn.addEventListener('click', async () => {
         try {
             const response = await fetch('index.php?page=get_settings&key=10-codes');
             const data = await response.json();
             const codes = JSON.parse(data.value);
             let html = '<dl class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">';
-            for (const code in codes) {
-                html += `<div class="relative"><dt><span class="font-bold text-white">${code}</span></dt><dd class="pl-2 text-brand-text-secondary">${codes[code]}</dd></div>`;
-            }
+            for (const code in codes) html += `<div class="relative"><dt><span class="font-bold text-white">${code}</span></dt><dd class="pl-2 text-brand-text-secondary">${codes[code]}</dd></div>`;
             html += '</dl>';
             modalBody.innerHTML = html;
             callsignModal.style.display = 'flex';
@@ -245,10 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             callsignModal.style.display = 'flex';
         }
     });
-
-    closeCallsignModalBtn.addEventListener('click', () => {
-        callsignModal.style.display = 'none';
-    });
+    closeCallsignModalBtn.addEventListener('click', () => callsignModal.style.display = 'none');
 
     // Initial data load
     fetchData();

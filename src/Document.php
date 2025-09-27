@@ -28,7 +28,12 @@ class Document {
      */
     public function getAll() {
         try {
-            $stmt = $this->db->prepare("SELECT id, title, created_at FROM documents WHERE organization_id = ? ORDER BY updated_at DESC");
+            $sql = "SELECT d.id, d.title, d.created_at, o.firstName, o.lastName
+                    FROM documents d
+                    LEFT JOIN officers o ON d.created_by_id = o.id
+                    WHERE d.organization_id = ?
+                    ORDER BY d.updated_at DESC";
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {

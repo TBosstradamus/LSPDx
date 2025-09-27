@@ -11,6 +11,17 @@ Auth::requirePermission('dispatch_view');
 $pageTitle = 'Dispatch';
 include_once BASE_PATH . '/templates/header.php';
 ?>
+<style>
+@keyframes flashing-border {
+    0% { border-color: #F85149; box-shadow: 0 0 10px #F85149; }
+    50% { border-color: #a12c26; box-shadow: 0 0 20px #a12c26; }
+    100% { border-color: #F85149; box-shadow: 0 0 10px #F85149; }
+}
+.shots-fired-alarm {
+    animation: flashing-border 1s infinite;
+    border-width: 2px; /* Ensure border is visible */
+}
+</style>
 
 <!-- Start of page-specific content -->
 <div class="h-[calc(100vh-10rem)] flex flex-col">
@@ -95,6 +106,9 @@ include_once BASE_PATH . '/templates/header.php';
         <div id="callsign-modal-body" class="p-6 overflow-y-auto"></div>
     </div>
 </div>
+
+<!-- Hidden audio element for the alarm -->
+<audio id="shots-fired-alarm" src="https://assets.mixkit.co/sfx/preview/mixkit-facility-alarm-sound-999.mp3" preload="auto"></audio>
 
 <script src="public/js/dispatch.js"></script>
 <!-- End of page-specific content -->
