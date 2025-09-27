@@ -5,8 +5,8 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     die('Forbidden');
 }
 
-// Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
+// Ensure user is authenticated
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['organization_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
@@ -17,26 +17,40 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// --- DEPENDENCIES ---
+require_once BASE_PATH . '/src/Auth.php';
+Auth::requirePermission('hr_officers_manage');
+
 require_once BASE_PATH . '/src/Officer.php';
 
-// --- LOGIC ---
 $officerId = $_POST['id'] ?? null;
 if (!$officerId) {
-    header('Location: index.php?page=hr&error=update_failed');
+    header('Location: index.php?page=hr&error=missing_id');
     exit;
 }
 
-$officerModel = new Officer();
-$success = $officerModel->update($officerId, $_POST);
+$data = [
+    'firstName' => $_POST['firstName'],
+    'lastName' => $_POST['lastName'],
+    'badgeNumber' => $_POST['badgeNumber'],
+    'phoneNumber' => $_POST['phoneNumber'],
+    'gender' => $_POST['gender'],
+    'rank' => $_POST['rank'],
+    'isActive' => $_POST['isActive'],
+];
 
-if ($success) {
-    // Success: Redirect to the main HR page with a success message.
-    header('Location: index.php?page=hr&status=officer_updated');
-    exit;
-} else {
-    // Failure: Redirect back to the edit form with an error.
-    header('Location: index.php?page=edit_officer&id=' . $officerId . '&error=update_failed');
-    exit;
+try {
+    $officerModel = new Officer($_SESSION['organization_id']);
+    $success = $officerModel->update($officerId, $data);
+
+    if ($success) {
+        header('Location: index.php?page=hr&status=officer_updated');
+    } else {
+        header('Location: index.php?page=edit_officer&id=' . $officerId . '&error=update_failed');
+    }
+} catch (Exception $e) {
+    error_log("Error updating officer: " . $e->getMessage());
+    header('Location: index.php?page=edit_officer&id=' . $officerId . '&error=unknown');
 }
+
+exit;
 ?>

@@ -5,7 +5,8 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php?page=login'); exit;
 }
-// requirePermission('fleet_view');
+require_once BASE_PATH . '/src/Auth.php';
+Auth::requirePermission('fleet_view');
 
 require_once BASE_PATH . '/src/Vehicle.php';
 
@@ -22,6 +23,7 @@ include_once BASE_PATH . '/templates/header.php';
         <h1 class="text-3xl font-bold text-white">Fuhrpark</h1>
         <p class="mt-1 text-brand-text-secondary">Verwalten Sie alle Fahrzeuge in der Flotte Ihrer Organisation.</p>
     </div>
+    <?php if (Auth::hasPermission('fleet_manage')): ?>
     <div>
         <a href="index.php?page=add_vehicle" class="bg-brand-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center">
             <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -30,6 +32,7 @@ include_once BASE_PATH . '/templates/header.php';
             Fahrzeug hinzufügen
         </a>
     </div>
+    <?php endif; ?>
 </div>
 
 <?php if (isset($_GET['status'])): ?>
@@ -82,9 +85,11 @@ include_once BASE_PATH . '/templates/header.php';
                             <div class="text-sm text-brand-text-primary"><?php echo htmlspecialchars(number_format($vehicle['mileage'], 0, ',', '.')); ?> km</div>
                         </div>
                     </div>
+                    <?php if (Auth::hasPermission('fleet_manage')): ?>
                     <div class="ml-4 flex-shrink-0">
                         <a href="index.php?page=edit_vehicle&id=<?php echo $vehicle['id']; ?>" class="text-brand-blue hover:underline">Bearbeiten</a>
                     </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>

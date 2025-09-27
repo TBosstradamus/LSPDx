@@ -5,8 +5,8 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     die('Forbidden');
 }
 
-// Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
+// Ensure user is authenticated
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['organization_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
@@ -17,20 +17,33 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// --- DEPENDENCIES ---
+require_once BASE_PATH . '/src/Auth.php';
+Auth::requirePermission('hr_officers_manage');
+
 require_once BASE_PATH . '/src/Officer.php';
 
-// --- LOGIC ---
-$officerModel = new Officer();
-$newOfficerId = $officerModel->create($_POST);
+$data = [
+    'firstName' => $_POST['firstName'],
+    'lastName' => $_POST['lastName'],
+    'badgeNumber' => $_POST['badgeNumber'],
+    'phoneNumber' => $_POST['phoneNumber'],
+    'gender' => $_POST['gender'],
+    'rank' => $_POST['rank'],
+];
 
-if ($newOfficerId) {
-    // Success: Redirect to the main HR page.
-    header('Location: index.php?page=hr&status=officer_added');
-    exit;
-} else {
-    // Failure: Redirect back to the form with an error.
-    header('Location: index.php?page=add_officer&error=creation_failed');
-    exit;
+try {
+    $officerModel = new Officer($_SESSION['organization_id']);
+    $officerId = $officerModel->create($data);
+
+    if ($officerId) {
+        header('Location: index.php?page=hr&status=officer_added');
+    } else {
+        header('Location: index.php?page=add_officer&error=creation_failed');
+    }
+} catch (Exception $e) {
+    error_log("Error creating officer: " . $e->getMessage());
+    header('Location: index.php?page=add_officer&error=unknown');
 }
+
+exit;
 ?>

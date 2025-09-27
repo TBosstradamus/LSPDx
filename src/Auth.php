@@ -14,13 +14,6 @@ class Auth {
         $this->db = Database::getInstance()->getConnection();
     }
 
-    /**
-     * Attempts to log in a user with the given credentials.
-     *
-     * @param string $username The username to check.
-     * @param string $password The password to check.
-     * @return array|false The user's data on success, false on failure.
-     */
     public function login($username, $password) {
         try {
             $sql = "SELECT u.*, o.organization_id
@@ -33,44 +26,41 @@ class Auth {
 
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Check if user exists and if the password is correct
             if ($user && password_verify($password, $user['password_hash'])) {
-                // Password is correct. Now, let's fetch the user's roles.
+                // Fetch roles
                 $rolesStmt = $this->db->prepare(
                     "SELECT r.name FROM roles r
                      JOIN user_roles ur ON r.id = ur.role_id
                      WHERE ur.officer_id = ?"
                 );
                 $rolesStmt->execute([$user['officer_id']]);
-                $roles = $rolesStmt->fetchAll(PDO::FETCH_COLUMN);
-                $user['roles'] = $roles; // Attach roles to the user array
+                $user['roles'] = $rolesStmt->fetchAll(PDO::FETCH_COLUMN);
 
-                // Return user data (without the password hash).
+                // Fetch permissions
+                $permissionsStmt = $this->db->prepare(
+                    "SELECT DISTINCT p.name
+                     FROM permissions p
+                     JOIN role_permissions rp ON p.id = rp.permission_id
+                     JOIN user_roles ur ON rp.role_id = ur.role_id
+                     WHERE ur.officer_id = ?"
+                );
+                $permissionsStmt->execute([$user['officer_id']]);
+                $user['permissions'] = $permissionsStmt->fetchAll(PDO::FETCH_COLUMN);
+
                 unset($user['password_hash']);
                 return $user;
             }
-
-            // If user not found or password incorrect
             return false;
-
         } catch (PDOException $e) {
             error_log("Login failed: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Checks if a user is currently logged in.
-     *
-     * @return bool
-     */
     public function isLoggedIn() {
         return isset($_SESSION['user_id']);
     }
 
-    /**
-     * Logs the current user out.
-     */
     public function logout() {
         $_SESSION = array();
         if (ini_get("session.use_cookies")) {
@@ -83,28 +73,26 @@ class Auth {
         session_destroy();
     }
 
-    /**
-     * A utility function to hash a password.
-     *
-     * @param string $password The plain-text password.
-     * @return string The hashed password.
-     */
     public static function hashPassword($password) {
         return password_hash($password, PASSWORD_DEFAULT);
     }
 
-    /**
-     * Checks if the logged-in user has a specific role.
-     *
-     * @param string $role The role to check for.
-     * @return bool True if the user has the role, false otherwise.
-     */
     public static function hasRole($role) {
-        // Ensure roles are set and is an array
-        if (isset($_SESSION['roles']) && is_array($_SESSION['roles'])) {
-            return in_array($role, $_SESSION['roles']);
+        return isset($_SESSION['roles']) && is_array($_SESSION['roles']) && in_array($role, $_SESSION['roles']);
+    }
+
+    public static function hasPermission($permission) {
+        if (self::hasRole('Admin')) {
+            return true; // Admins have all permissions
         }
-        return false;
+        return isset($_SESSION['permissions']) && is_array($_SESSION['permissions']) && in_array($permission, $_SESSION['permissions']);
+    }
+
+    public static function requirePermission($permission) {
+        if (!self::hasPermission($permission)) {
+            header('Location: index.php?page=dashboard&error=permission_denied');
+            exit;
+        }
     }
 }
 ?>

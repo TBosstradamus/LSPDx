@@ -12,10 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// --- DEPENDENCIES ---
-// Auth class is already loaded by index.php
+require_once BASE_PATH . '/src/Auth.php';
 
-// --- LOGIN LOGIC ---
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
 
@@ -31,7 +29,8 @@ if ($user) {
     $_SESSION['officer_id'] = $user['officer_id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['organization_id'] = $user['organization_id'];
-    $_SESSION['roles'] = $user['roles'] ?? []; // Store roles in session
+    $_SESSION['roles'] = $user['roles'] ?? [];
+    $_SESSION['permissions'] = $user['permissions'] ?? [];
 
     // Redirect to the dashboard
     header('Location: index.php?page=dashboard');
