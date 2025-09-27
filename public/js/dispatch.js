@@ -82,9 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
             seatsHTML += `<div class="vehicle-seat border border-dashed border-gray-600 rounded p-1 min-h-[48px]" data-seat-index="${i}"></div>`;
         }
 
-        // Note: In a real scenario, these options might come from the API
         const funkOptions = ['LSPD 1', 'LSPD 2', 'STATE', 'CITY'].map(f => `<option value="${f}" ${vehicle.current_funk === f ? 'selected' : ''}>${f}</option>`).join('');
         const callsignOptions = ['1-ADAM', '2-ADAM', '3-ADAM', '1-KING', '2-KING'].map(c => `<option value="${c}" ${vehicle.current_callsign === c ? 'selected' : ''}>${c}</option>`).join('');
+
+        const statusCodes = { 1: 'Code 1', 2: 'Code 2', 3: 'Code 3', 4: 'Code 4', 10: 'Shots Fired' };
+        let statusOptions = '<option value="">Status...</option>';
+        for (const code in statusCodes) {
+            statusOptions += `<option value="${code}" ${vehicle.current_status == code ? 'selected' : ''}>${statusCodes[code]}</option>`;
+        }
 
         el.innerHTML = `
             <div class="flex justify-between items-center">
@@ -93,6 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="grid grid-cols-2 gap-2">
                 ${seatsHTML}
+            </div>
+            <div class="grid grid-cols-1 gap-2 mt-1">
+                 <select class="vehicle-status-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1">
+                    ${statusOptions}
+                </select>
             </div>
             <div class="grid grid-cols-2 gap-2 mt-1">
                 <select class="vehicle-funk-select bg-brand-sidebar border-brand-border rounded-md text-xs p-1">
@@ -106,6 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
+        el.querySelector('.vehicle-status-select').addEventListener('change', (e) => {
+            setVehicleStatus(vehicle.id, e.target.value);
+        });
         el.querySelector('.vehicle-funk-select').addEventListener('change', (e) => {
             setVehicleFunk(vehicle.id, e.target.value);
         });
@@ -176,6 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     async function setVehicleCallsign(vehicleId, callsign) {
         await postRequest('index.php?page=set_vehicle_callsign', { vehicleId, callsign });
+    }
+    async function setVehicleStatus(vehicleId, status) {
+        await postRequest('index.php?page=set_vehicle_status', { vehicleId, status });
     }
 
     async function postRequest(url, data) {

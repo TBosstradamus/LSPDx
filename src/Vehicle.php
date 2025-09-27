@@ -134,5 +134,16 @@ class Vehicle {
             return false;
         }
     }
+
+    public function updateStatus($vehicleId, $status) {
+        $this->checkOrgId();
+        try {
+            $stmt = $this->db->prepare("UPDATE vehicles SET current_status = ? WHERE id = ? AND organization_id = ?");
+            return $stmt->execute([$status, $vehicleId, $this->organization_id]);
+        } catch (PDOException $e) {
+            error_log("Error updating vehicle status: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>
