@@ -21,6 +21,7 @@ require_once BASE_PATH . '/src/Auth.php';
 Auth::requirePermission('hr_officers_manage');
 
 require_once BASE_PATH . '/src/Officer.php';
+require_once BASE_PATH . '/src/Log.php';
 
 $data = [
     'firstName' => $_POST['firstName'],
@@ -36,6 +37,8 @@ try {
     $officerId = $officerModel->create($data);
 
     if ($officerId) {
+        // Add a log entry for successful officer creation
+        Log::add('officer_created', "Created new officer '{$data['firstName']} {$data['lastName']}' (#{$data['badgeNumber']}).", ['officer_id' => $officerId]);
         header('Location: index.php?page=hr&status=officer_added');
     } else {
         header('Location: index.php?page=add_officer&error=creation_failed');

@@ -10,8 +10,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['organization_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
-
-// TODO: Add permission check: Auth::requirePermission('fto_view');
+require_once BASE_PATH . '/src/Auth.php';
+// Auth::requirePermission('fto_view'); // To be implemented in permissions phase
 
 $pageTitle = 'FTO - Ausbildungsakten';
 include_once BASE_PATH . '/templates/header.php';
