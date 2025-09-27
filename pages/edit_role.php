@@ -17,9 +17,13 @@ $rolePermissions = [];
 
 if ($roleId) {
     // Editing an existing role
-    $role = $roleModel->findById($roleId); // Note: We need to add findById to the Role model
+    $role = $roleModel->findById($roleId);
     if ($role) {
         $rolePermissions = $roleModel->getPermissionsForRole($roleId);
+    } else {
+        // Role not found in this organization, redirect
+        header('Location: index.php?page=manage_roles&error=not_found');
+        exit;
     }
 }
 

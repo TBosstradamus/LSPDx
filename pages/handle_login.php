@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once BASE_PATH . '/src/Auth.php';
+require_once BASE_PATH . '/src/Log.php';
 
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
@@ -32,11 +33,17 @@ if ($user) {
     $_SESSION['roles'] = $user['roles'] ?? [];
     $_SESSION['permissions'] = $user['permissions'] ?? [];
 
+    // Add a log entry for successful login
+    Log::add('login_success', "User '{$user['username']}' logged in successfully.");
+
     // Redirect to the dashboard
     header('Location: index.php?page=dashboard');
     exit;
 
 } else {
+    // Add a log entry for failed login attempt
+    Log::add('login_failed', "Failed login attempt for username '{$username}'.");
+
     // On failed login
     header('Location: index.php?page=login&error=invalid_credentials');
     exit;

@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once BASE_PATH . '/src/Vehicle.php';
+require_once BASE_PATH . '/src/Log.php';
+
 $vehicleModel = new Vehicle($_SESSION['organization_id']);
 
 $action = $_POST['action'] ?? '';
@@ -39,13 +41,19 @@ if ($action === 'update') {
     ];
     $success = $vehicleModel->update($vehicleId, $data);
     if ($success) {
+        Log::add('vehicle_updated', "Updated vehicle '{$data['name']}'.", ['vehicle_id' => $vehicleId]);
         header('Location: index.php?page=fuhrpark&status=vehicle_updated');
     } else {
         header('Location: index.php?page=edit_vehicle&id=' . $vehicleId . '&error=update_failed');
     }
 } elseif ($action === 'delete') {
+    // Fetch vehicle details before deleting for the log
+    $vehicle = $vehicleModel->findById($vehicleId);
+    $vehicleName = $vehicle ? $vehicle['name'] : "ID: {$vehicleId}";
+
     $success = $vehicleModel->delete($vehicleId);
     if ($success) {
+        Log::add('vehicle_deleted', "Deleted vehicle '{$vehicleName}'.", ['vehicle_id' => $vehicleId]);
         header('Location: index.php?page=fuhrpark&status=vehicle_deleted');
     } else {
         header('Location: index.php?page=edit_vehicle&id=' . $vehicleId . '&error=delete_failed');

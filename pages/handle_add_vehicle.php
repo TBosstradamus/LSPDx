@@ -21,6 +21,7 @@ require_once BASE_PATH . '/src/Auth.php';
 Auth::requirePermission('fleet_manage');
 
 require_once BASE_PATH . '/src/Vehicle.php';
+require_once BASE_PATH . '/src/Log.php';
 
 // Collect data from the form
 $data = [
@@ -39,6 +40,8 @@ try {
     $vehicleId = $vehicleModel->create($data);
 
     if ($vehicleId) {
+        // Add a log entry for successful vehicle creation
+        Log::add('vehicle_created', "Created new vehicle '{$data['name']}' ({$data['licensePlate']}).", ['vehicle_id' => $vehicleId]);
         // Redirect to the main fleet page on success
         header('Location: index.php?page=fuhrpark&status=vehicle_added');
     } else {

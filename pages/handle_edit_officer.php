@@ -21,6 +21,7 @@ require_once BASE_PATH . '/src/Auth.php';
 Auth::requirePermission('hr_officers_manage');
 
 require_once BASE_PATH . '/src/Officer.php';
+require_once BASE_PATH . '/src/Log.php';
 
 $officerId = $_POST['id'] ?? null;
 if (!$officerId) {
@@ -43,6 +44,8 @@ try {
     $success = $officerModel->update($officerId, $data);
 
     if ($success) {
+        // Add a log entry for successful officer update
+        Log::add('officer_updated', "Updated details for officer '{$data['firstName']} {$data['lastName']}' (#{$data['badgeNumber']}).", ['officer_id' => $officerId]);
         header('Location: index.php?page=hr&status=officer_updated');
     } else {
         header('Location: index.php?page=edit_officer&id=' . $officerId . '&error=update_failed');

@@ -21,6 +21,7 @@ require_once BASE_PATH . '/src/Auth.php';
 Auth::requirePermission('hr_manage_roles');
 
 require_once BASE_PATH . '/src/Role.php';
+require_once BASE_PATH . '/src/Log.php';
 
 $officerId = $_POST['officer_id'] ?? null;
 $roles = $_POST['roles'] ?? [];
@@ -35,6 +36,9 @@ try {
     $success = $roleModel->updateRolesForOfficer($officerId, $roles);
 
     if ($success) {
+        // Add a log entry for successful role update
+        $roleIdsString = implode(', ', $roles);
+        Log::add('roles_updated', "Updated roles for officer ID {$officerId}.", ['officer_id' => $officerId, 'new_role_ids' => $roleIdsString]);
         header('Location: index.php?page=hr&status=roles_updated');
     } else {
         header('Location: index.php?page=edit_user_roles&officer_id=' . $officerId . '&error=update_failed');
