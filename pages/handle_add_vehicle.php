@@ -17,7 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// requirePermission('fleet_manage'); // Future-proofing for permission system
+require_once BASE_PATH . '/src/Auth.php';
+Auth::requirePermission('fleet_manage');
 
 require_once BASE_PATH . '/src/Vehicle.php';
 

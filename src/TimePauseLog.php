@@ -9,13 +9,18 @@ require_once __DIR__ . '/Database.php';
 
 class TimePauseLog {
     private $db;
+    private $organization_id;
 
-    public function __construct() {
+    public function __construct($organization_id) {
         $this->db = Database::getInstance()->getConnection();
+        if (empty($organization_id)) {
+            throw new InvalidArgumentException("Organization ID must be provided for TimePauseLog model.");
+        }
+        $this->organization_id = $organization_id;
     }
 
     /**
-     * Gets all pause log entries.
+     * Gets all pause log entries for the organization.
      * @return array
      */
     public function getAll() {
@@ -27,10 +32,11 @@ class TimePauseLog {
                     FROM time_pause_log tpl
                     JOIN officers o ON tpl.officer_id = o.id
                     LEFT JOIN officers r ON tpl.reviewed_by_id = r.id
+                    WHERE tpl.organization_id = ?
                     ORDER BY tpl.status = 'pending' DESC, tpl.pause_start_time DESC";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute([$this->organization_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching pause logs: " . $e->getMessage());
@@ -57,8 +63,8 @@ class TimePauseLog {
     public function reject($logId, $reviewerId) {
         $this->db->beginTransaction();
         try {
-            $logStmt = $this->db->prepare("SELECT officer_id, duration FROM time_pause_log WHERE id = ?");
-            $logStmt->execute([$logId]);
+            $logStmt = $this->db->prepare("SELECT officer_id, duration FROM time_pause_log WHERE id = ? AND organization_id = ?");
+            $logStmt->execute([$logId, $this->organization_id]);
             $log = $logStmt->fetch();
 
             if (!$log || !$log['duration']) {
@@ -66,8 +72,8 @@ class TimePauseLog {
             }
 
             // Subtract the duration from the officer's totalHours
-            $officerStmt = $this->db->prepare("UPDATE officers SET totalHours = totalHours - ? WHERE id = ?");
-            $officerStmt->execute([$log['duration'], $log['officer_id']]);
+            $officerStmt = $this->db->prepare("UPDATE officers SET totalHours = totalHours - ? WHERE id = ? AND organization_id = ?");
+            $officerStmt->execute([$log['duration'], $log['officer_id'], $this->organization_id]);
 
             // Update the log status
             $this->updateStatus($logId, 'rejected', $reviewerId);
@@ -83,11 +89,12 @@ class TimePauseLog {
 
     private function updateStatus($logId, $status, $reviewerId) {
         try {
+            // Ensure the log entry belongs to the correct organization before updating
             $sql = "UPDATE time_pause_log
                     SET status = ?, reviewed_by_id = ?, reviewed_at = NOW()
-                    WHERE id = ? AND status = 'pending'";
+                    WHERE id = ? AND status = 'pending' AND organization_id = ?";
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$status, $reviewerId, $logId]);
+            return $stmt->execute([$status, $reviewerId, $logId, $this->organization_id]);
         } catch (PDOException $e) {
             error_log("Error updating pause log status: " . $e->getMessage());
             return false;

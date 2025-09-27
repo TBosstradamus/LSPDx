@@ -5,8 +5,8 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     die('Forbidden');
 }
 
-// Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
+// Ensure user is authenticated
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['organization_id'])) {
     header('Location: index.php?page=login');
     exit;
 }
@@ -17,28 +17,32 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// --- DEPENDENCIES ---
-require_once BASE_PATH . '/src/Roles.php';
+require_once BASE_PATH . '/src/Auth.php';
+Auth::requirePermission('hr_manage_roles');
 
-// --- LOGIC ---
+require_once BASE_PATH . '/src/Role.php';
+
 $officerId = $_POST['officer_id'] ?? null;
-$roleIds = $_POST['roles'] ?? []; // The checkboxes will submit an array of role IDs
+$roles = $_POST['roles'] ?? [];
 
 if (!$officerId) {
-    header('Location: index.php?page=hr&error=update_failed');
+    header('Location: index.php?page=hr&error=missing_id');
     exit;
 }
 
-$rolesModel = new Roles();
-$success = $rolesModel->updateUserRoles($officerId, $roleIds);
+try {
+    $roleModel = new Role($_SESSION['organization_id']);
+    $success = $roleModel->updateRolesForOfficer($officerId, $roles);
 
-if ($success) {
-    // Success: Redirect to the main HR page with a success message.
-    header('Location: index.php?page=hr&status=roles_updated');
-    exit;
-} else {
-    // Failure: Redirect back to the form with an error.
-    header('Location: index.php?page=edit_user_roles&officer_id=' . $officerId . '&error=update_failed');
-    exit;
+    if ($success) {
+        header('Location: index.php?page=hr&status=roles_updated');
+    } else {
+        header('Location: index.php?page=edit_user_roles&officer_id=' . $officerId . '&error=update_failed');
+    }
+} catch (Exception $e) {
+    error_log("Error updating user roles: " . $e->getMessage());
+    header('Location: index.php?page=edit_user_roles&officer_id=' . $officerId . '&error=unknown');
 }
+
+exit;
 ?>

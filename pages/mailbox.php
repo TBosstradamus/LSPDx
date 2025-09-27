@@ -14,7 +14,21 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['officer_id']) || !isset($_
 require_once BASE_PATH . '/src/Mail.php';
 
 $mailModel = new Mail($_SESSION['organization_id']);
-$inbox = $mailModel->getInboxForOfficer($_SESSION['officer_id']);
+$currentView = $_GET['view'] ?? 'inbox'; // Default to inbox
+
+$emails = [];
+switch ($currentView) {
+    case 'sent':
+        $emails = $mailModel->getSentForOfficer($_SESSION['officer_id']);
+        break;
+    case 'drafts':
+        $emails = $mailModel->getDraftsForOfficer($_SESSION['officer_id']);
+        break;
+    case 'inbox':
+    default:
+        $emails = $mailModel->getInboxForOfficer($_SESSION['officer_id']);
+        break;
+}
 
 $pageTitle = 'Postfach';
 include_once BASE_PATH . '/templates/header.php';
@@ -40,13 +54,13 @@ include_once BASE_PATH . '/templates/header.php';
     <!-- Tabs -->
     <div class="px-6 border-b border-brand-border">
         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-            <a href="#" class="border-brand-blue text-brand-blue whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" aria-current="page">
+            <a href="index.php?page=mailbox&view=inbox" class="<?php echo $currentView === 'inbox' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-gray-500'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                 Posteingang
             </a>
-            <a href="#" class="border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <a href="index.php?page=mailbox&view=sent" class="<?php echo $currentView === 'sent' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-gray-500'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                 Gesendet
             </a>
-             <a href="#" class="border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+             <a href="index.php?page=mailbox&view=drafts" class="<?php echo $currentView === 'drafts' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-gray-500'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                 Entwürfe
             </a>
         </nav>
@@ -54,27 +68,33 @@ include_once BASE_PATH . '/templates/header.php';
 
     <!-- Email List -->
     <div class="divide-y divide-brand-border">
-        <?php if (empty($inbox)): ?>
+        <?php if (empty($emails)): ?>
             <div class="p-6 text-center text-brand-text-secondary">
-                Ihr Posteingang ist leer.
+                In diesem Ordner befinden sich keine Nachrichten.
             </div>
         <?php else: ?>
-            <?php foreach ($inbox as $email): ?>
+            <?php foreach ($emails as $email): ?>
                 <a href="index.php?page=view_email&id=<?php echo $email['id']; ?>" class="block p-4 hover:bg-gray-800/50">
                     <div class="flex items-center">
-                        <?php if (!$email['is_read']): ?>
+                        <?php if ($currentView === 'inbox' && !$email['is_read']): ?>
                             <div class="flex-shrink-0">
                                 <span class="h-2.5 w-2.5 bg-brand-blue rounded-full"></span>
                             </div>
                         <?php endif; ?>
                         <div class="flex-grow grid grid-cols-12 gap-4 ml-3">
-                            <div class="col-span-4 <?php echo $email['is_read'] ? 'text-brand-text-secondary' : 'text-white font-bold'; ?>">
-                                <?php echo htmlspecialchars($email['sender_name'] ?? 'System'); ?>
+                            <div class="col-span-4 <?php echo ($currentView === 'inbox' && !$email['is_read']) ? 'text-white font-bold' : 'text-brand-text-secondary'; ?>">
+                                <?php
+                                if ($currentView === 'inbox') {
+                                    echo htmlspecialchars($email['sender_name'] ?? 'System');
+                                } else {
+                                    echo htmlspecialchars($email['recipients'] ?? 'N/A');
+                                }
+                                ?>
                             </div>
-                            <div class="col-span-6 <?php echo $email['is_read'] ? 'text-brand-text-secondary' : 'text-white'; ?>">
+                            <div class="col-span-6 <?php echo ($currentView === 'inbox' && !$email['is_read']) ? 'text-white' : 'text-brand-text-secondary'; ?>">
                                 <?php echo htmlspecialchars($email['subject']); ?>
                             </div>
-                            <div class="col-span-2 text-right text-sm <?php echo $email['is_read'] ? 'text-gray-500' : 'text-brand-text-secondary'; ?>">
+                            <div class="col-span-2 text-right text-sm <?php echo ($currentView === 'inbox' && !$email['is_read']) ? 'text-brand-text-primary' : 'text-gray-500'; ?>">
                                 <?php echo date('d.m.Y H:i', strtotime($email['timestamp'])); ?>
                             </div>
                         </div>
