@@ -12,42 +12,36 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['officer_id']) || !isset($_
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    // Redirect if not a POST request
     header('Location: index.php?page=mein_dienst');
     exit;
 }
 
 $recordId = $_POST['record_id'] ?? null;
-
 if (!$recordId) {
-    // Redirect if the record ID is missing
     header('Location: index.php?page=mein_dienst&error=missing_record_id');
     exit;
 }
 
 require_once BASE_PATH . '/src/TimeClock.php';
+require_once BASE_PATH . '/src/Dispatch.php';
 
 try {
-    // Instantiate TimeClock with the organization_id from the session
     $timeClock = new TimeClock($_SESSION['organization_id']);
-
-    // Attempt to clock out the user
     $success = $timeClock->clockOut($_SESSION['officer_id'], $recordId);
 
-    if (!$success) {
-        // Handle cases where clock-out fails
-        // header('Location: index.php?page=mein_dienst&error=clockout_failed');
-        // exit;
+    if ($success) {
+        // After successfully clocking out, also unassign the officer from dispatch.
+        $dispatchModel = new Dispatch($_SESSION['organization_id']);
+        $dispatchModel->unassignOfficer($_SESSION['officer_id']);
+    } else {
+        // Handle cases where clock-out fails, maybe set an error message
     }
 
 } catch (Exception $e) {
-    // Log the error and redirect with a generic error message
-    error_log("Clock-out error: " . $e->getMessage());
-    // header('Location: index.php?page=mein_dienst&error=clockout_failed');
-    // exit;
+    error_log("Clock-out process error: " . $e->getMessage());
 }
 
-// Redirect back to the main service page
+// Redirect back to the main service page regardless of dispatch unassignment result
 header('Location: index.php?page=mein_dienst');
 exit;
 ?>

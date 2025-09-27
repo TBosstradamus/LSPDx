@@ -56,21 +56,21 @@ include_once BASE_PATH . '/templates/header.php';
             <!-- Header Roles -->
             <header class="flex-shrink-0 bg-brand-card border border-brand-border rounded-lg p-3">
                 <div id="header-role-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div class="header-role bg-brand-bg rounded-lg p-2 text-center" data-role-name="dispatch">
+                    <div class="header-role-wrapper bg-brand-bg rounded-lg p-2 text-center" data-role-name="dispatch">
                         <span class="text-xs font-bold uppercase text-brand-text-secondary">Dispatch</span>
-                        <span class="role-officer block text-white font-semibold truncate">--</span>
+                        <div class="role-officer min-h-[28px] mt-1"></div>
                     </div>
-                     <div class="header-role bg-brand-bg rounded-lg p-2 text-center" data-role-name="co-dispatch">
+                     <div class="header-role-wrapper bg-brand-bg rounded-lg p-2 text-center" data-role-name="co-dispatch">
                         <span class="text-xs font-bold uppercase text-brand-text-secondary">Co-Dispatch</span>
-                        <span class="role-officer block text-white font-semibold truncate">--</span>
+                        <div class="role-officer min-h-[28px] mt-1"></div>
                     </div>
-                     <div class="header-role bg-brand-bg rounded-lg p-2 text-center" data-role-name="air1">
+                     <div class="header-role-wrapper bg-brand-bg rounded-lg p-2 text-center" data-role-name="air1">
                         <span class="text-xs font-bold uppercase text-brand-text-secondary">Air-1</span>
-                        <span class="role-officer block text-white font-semibold truncate">--</span>
+                        <div class="role-officer min-h-[28px] mt-1"></div>
                     </div>
-                     <div class="header-role bg-brand-bg rounded-lg p-2 text-center" data-role-name="air2">
+                     <div class="header-role-wrapper bg-brand-bg rounded-lg p-2 text-center" data-role-name="air2">
                         <span class="text-xs font-bold uppercase text-brand-text-secondary">Air-2</span>
-                        <span class="role-officer block text-white font-semibold truncate">--</span>
+                        <div class="role-officer min-h-[28px] mt-1"></div>
                     </div>
                 </div>
             </header>

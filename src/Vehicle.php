@@ -112,5 +112,27 @@ class Vehicle {
             return false;
         }
     }
+
+    public function updateFunk($vehicleId, $funk) {
+        $this->checkOrgId();
+        try {
+            $stmt = $this->db->prepare("UPDATE vehicles SET current_funk = ? WHERE id = ? AND organization_id = ?");
+            return $stmt->execute([$funk, $vehicleId, $this->organization_id]);
+        } catch (PDOException $e) {
+            error_log("Error updating vehicle funk: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateCallsign($vehicleId, $callsign) {
+        $this->checkOrgId();
+        try {
+            $stmt = $this->db->prepare("UPDATE vehicles SET current_callsign = ? WHERE id = ? AND organization_id = ?");
+            return $stmt->execute([$callsign, $vehicleId, $this->organization_id]);
+        } catch (PDOException $e) {
+            error_log("Error updating vehicle callsign: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>
