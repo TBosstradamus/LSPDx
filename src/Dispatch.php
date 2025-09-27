@@ -6,160 +6,59 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 require_once __DIR__ . '/Database.php';
-require_once __DIR__ . '/Organization.php';
 
 class Dispatch {
     private $db;
     private $organization_id;
 
-    public function __construct() {
+    public function __construct($organization_id) {
         $this->db = Database::getInstance()->getConnection();
-        if (isset($_SESSION['organization_id'])) {
-            $this->organization_id = $_SESSION['organization_id'];
-        } else {
-            die("Fehler: Organisations-ID nicht gefunden. Bitte neu anmelden.");
+        if (empty($organization_id)) {
+            throw new InvalidArgumentException("Organization ID must be provided for Dispatch model.");
         }
+        $this->organization_id = $organization_id;
     }
 
-    public function getState() {
-        $orgModel = new Organization();
-        $sharedOrgIds = $orgModel->getSharedOrgsFor('dispatch_view');
-        $visibleOrgIds = array_unique(array_merge([$this->organization_id], $sharedOrgIds));
-
-        $allAssignments = $this->getAllAssignments($visibleOrgIds);
-
-        $vehicles = $this->getOnDutyVehiclesWithAssignments($allAssignments, $visibleOrgIds);
-        $headerRoles = $this->getHeaderAssignments($allAssignments);
-        $onActivityOfficers = $this->getOnActivityOfficers($allAssignments);
-
-        $assignedOfficerIds = array_column($this->getAllAssignments([$this->organization_id]), 'officer_id');
-        $availableOfficers = $this->getAvailableOfficers($assignedOfficerIds);
-
-        return [
-            'vehicles' => $vehicles,
-            'header_roles' => $headerRoles,
-            'on_activity_officers' => $onActivityOfficers,
-            'available_officers' => $availableOfficers
-        ];
-    }
-
-    private function getAllAssignments($orgIds) {
-        if (empty($orgIds)) return [];
-        $placeholders = implode(',', array_fill(0, count($orgIds), '?'));
-        $sql = "SELECT da.*, o.id, o.firstName, o.lastName, o.badgeNumber, o.rank, o.display_name, o.organization_id as officer_org_id
-                FROM dispatch_assignments da
-                JOIN officers o ON da.officer_id = o.id
-                WHERE da.organization_id IN ($placeholders)";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($orgIds);
-        $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($assignments as &$assignment) {
-            if ($assignment['officer_org_id'] == 2 && !empty($assignment['display_name']) && $this->organization_id != 2) {
-                $assignment['firstName'] = $assignment['display_name'];
-                $assignment['lastName'] = '(FIB)';
-            }
-        }
-        return $assignments;
-    }
-
-    private function getOnDutyVehiclesWithAssignments($allAssignments, $orgIds) {
-        if (empty($orgIds)) return [];
-        $placeholders = implode(',', array_fill(0, count($orgIds), '?'));
-        $stmt = $this->db->prepare("SELECT * FROM vehicles WHERE organization_id IN ($placeholders) AND on_duty = TRUE ORDER BY name");
-        $stmt->execute($orgIds);
-        $vehicles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $vehicleAssignments = array_filter($allAssignments, fn($a) => $a['assignment_type'] === 'vehicle');
-        foreach ($vehicles as &$vehicle) {
-            $seats = array_fill(0, $vehicle['capacity'], null);
-            foreach ($vehicleAssignments as $assignment) {
-                if ($assignment['assignment_id'] == $vehicle['id']) {
-                    $seats[$assignment['seat_index']] = $assignment;
-                }
-            }
-            $vehicle['seats'] = $seats;
-        }
-        return $vehicles;
-    }
-
-    private function getHeaderAssignments($allAssignments) {
-        $allRoles = ['dispatch' => null, 'co-dispatch' => null, 'air1' => null, 'air2' => null];
-        $headerAssignments = array_filter($allAssignments, fn($a) => $a['assignment_type'] === 'header' && $a['organization_id'] == $this->organization_id);
-        foreach ($headerAssignments as $assignment) {
-            if (isset($allRoles[$assignment['assignment_id']])) {
-                $allRoles[$assignment['assignment_id']] = $assignment;
-            }
-        }
-        return $allRoles;
-    }
-
-    private function getOnActivityOfficers($allAssignments) {
-        return array_filter($allAssignments, fn($a) => $a['assignment_type'] === 'activity' && $a['organization_id'] == $this->organization_id);
-    }
-
-    private function getAvailableOfficers($assignedOfficerIds) {
-        $sql = "SELECT DISTINCT o.id, o.firstName, o.lastName, o.badgeNumber, o.rank
-                FROM officers o
-                JOIN time_tracking tt ON o.id = tt.officer_id
-                WHERE o.organization_id = ? AND o.isActive = TRUE AND tt.clockOutTime IS NULL";
-        $params = [$this->organization_id];
-        if (!empty($assignedOfficerIds)) {
-            $placeholders = implode(',', array_fill(0, count($assignedOfficerIds), '?'));
-            $sql .= " AND o.id NOT IN ($placeholders)";
-            $params = array_merge($params, $assignedOfficerIds);
-        }
-        $sql .= " ORDER BY o.lastName, o.firstName";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    private function performTransactionalAssignment(callable $assignmentLogic) {
-        $this->db->beginTransaction();
+    public function getAssignments() {
         try {
-            $assignmentLogic();
-            $this->db->commit();
-            return true;
+            $stmt = $this->db->prepare("SELECT * FROM dispatch_assignments WHERE organization_id = ?");
+            $stmt->execute([$this->organization_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            $this->db->rollBack();
-            error_log("Transactional assignment failed: " . $e->getMessage());
+            error_log("Error fetching assignments: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function unassignOfficer($officerId) {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM dispatch_assignments WHERE officer_id = ? AND organization_id = ?");
+            return $stmt->execute([$officerId, $this->organization_id]);
+        } catch (PDOException $e) {
+            error_log("Error unassigning officer: " . $e->getMessage());
             return false;
         }
     }
 
-    private function _unassignOfficer($officerId) {
-        $this->db->prepare("DELETE FROM dispatch_assignments WHERE officer_id = ?")->execute([$officerId]);
-        $this->db->prepare("UPDATE officers SET last_assignment_time = NOW() WHERE id = ?")->execute([$officerId]);
-    }
+    public function assignOfficer($officerId, $assignmentType, $assignmentId, $seatIndex = null) {
+        $this->db->beginTransaction();
+        try {
+            // First, unassign the officer from any previous assignment
+            $this->unassignOfficer($officerId);
 
-    public function assignOfficerToVehicle($officerId, $vehicleId, $seatIndex) {
-        return $this->performTransactionalAssignment(function() use ($officerId, $vehicleId, $seatIndex) {
-            $this->_unassignOfficer($officerId);
-            $sql = "INSERT INTO dispatch_assignments (organization_id, officer_id, assignment_type, assignment_id, seat_index) VALUES (?, ?, 'vehicle', ?, ?)";
-            $this->db->prepare($sql)->execute([$this->organization_id, $officerId, $vehicleId, $seatIndex]);
-        });
-    }
+            // Then, create the new assignment
+            $sql = "INSERT INTO dispatch_assignments (organization_id, officer_id, assignment_type, assignment_id, seat_index)
+                    VALUES (?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$this->organization_id, $officerId, $assignmentType, $assignmentId, $seatIndex]);
 
-    public function assignOfficerToHeader($officerId, $roleName) {
-        return $this->performTransactionalAssignment(function() use ($officerId, $roleName) {
-            $this->_unassignOfficer($officerId);
-            $sql = "INSERT INTO dispatch_assignments (organization_id, officer_id, assignment_type, assignment_id) VALUES (?, ?, 'header', ?)";
-            $this->db->prepare($sql)->execute([$this->organization_id, $officerId, $roleName]);
-        });
-    }
-
-    public function assignOfficerToActivity($officerId, $activityName) {
-        return $this->performTransactionalAssignment(function() use ($officerId, $activityName) {
-            $this->_unassignOfficer($officerId);
-            $sql = "INSERT INTO dispatch_assignments (organization_id, officer_id, assignment_type, assignment_id) VALUES (?, ?, 'activity', ?)";
-            $this->db->prepare($sql)->execute([$this->organization_id, $officerId, $activityName]);
-        });
-    }
-
-    public function unassignOfficerFromAll($officerId) {
-        return $this->performTransactionalAssignment(function() use ($officerId) {
-            $this->_unassignOfficer($officerId);
-        });
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Error assigning officer: " . $e->getMessage());
+            return false;
+        }
     }
 }
 ?>

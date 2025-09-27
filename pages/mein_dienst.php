@@ -11,7 +11,6 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['officer_id']) || !isset($_
 require_once BASE_PATH . '/src/Officer.php';
 require_once BASE_PATH . '/src/TimeClock.php';
 
-// Fix: Instantiate Officer model with the organization_id from the session
 $officerModel = new Officer($_SESSION['organization_id']);
 $currentUser = $officerModel->findByIdInOrg($_SESSION['officer_id']);
 
@@ -20,7 +19,6 @@ if (!$currentUser) {
     header('Location: index.php?page=logout'); exit;
 }
 
-// Instantiate TimeClock model
 try {
     $timeClockModel = new TimeClock($currentUser['organization_id']);
     $currentClockIn = $timeClockModel->getCurrentStatus($currentUser['id']);
@@ -112,8 +110,15 @@ include_once BASE_PATH . '/templates/header.php';
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const display = document.getElementById('running-time-display');
-    // Use the UTC timestamp from the server
-    const clockInTimestamp = new Date('<?php echo $currentClockIn['clockInTime'] . 'Z'; ?>').getTime();
+    // Use PHP to format the timestamp into a standard ISO 8601 string that JS can reliably parse.
+    const isoTimestamp = '<?php echo date('c', strtotime($currentClockIn['clockInTime'])); ?>';
+    const clockInTimestamp = new Date(isoTimestamp).getTime();
+
+    if (isNaN(clockInTimestamp)) {
+        console.error("Invalid clock-in timestamp received:", '<?php echo $currentClockIn['clockInTime']; ?>');
+        display.textContent = 'Error';
+        return;
+    }
 
     function updateTimer() {
         const now = new Date().getTime();
@@ -128,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         display.textContent = `${hours}:${minutes}:${seconds}`;
     }
 
-    // Set up the interval and also run it immediately
     updateTimer();
     setInterval(updateTimer, 1000);
 });

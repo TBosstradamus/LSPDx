@@ -68,6 +68,57 @@ class Mail {
         return [];
     }
 
+    public function getEmailById($emailId, $userId) {
+        try {
+            $sql = "SELECT
+                        e.*,
+                        s.display_name AS sender_name,
+                        (SELECT GROUP_CONCAT(o.display_name SEPARATOR ', ')
+                         FROM email_recipients er
+                         JOIN officers o ON er.recipient_id = o.id
+                         WHERE er.email_id = e.id) AS recipients
+                    FROM emails e
+                    LEFT JOIN officers s ON e.sender_id = s.id
+                    WHERE e.id = ? AND e.organization_id = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$emailId, $this->organization_id]);
+            $email = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$email) {
+                return false; // Email not found
+            }
+
+            // Security check: ensure the user is either the sender or a recipient
+            $isSender = ($email['sender_id'] == $userId);
+
+            $recipientCheckSql = "SELECT COUNT(*) FROM email_recipients WHERE email_id = ? AND recipient_id = ?";
+            $recipientStmt = $this->db->prepare($recipientCheckSql);
+            $recipientStmt->execute([$emailId, $userId]);
+            $isRecipient = $recipientStmt->fetchColumn() > 0;
+
+            if ($isSender || $isRecipient) {
+                return $email;
+            }
+
+            return false; // User is not authorized to view this email
+        } catch (PDOException $e) {
+            error_log("Error fetching email by ID: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function markAsRead($emailId, $recipientId) {
+        try {
+            $sql = "UPDATE email_recipients SET is_read = 1 WHERE email_id = ? AND recipient_id = ?";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$emailId, $recipientId]);
+        } catch (PDOException $e) {
+            error_log("Error marking email as read: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function create($senderId, $recipientIds, $subject, $body) {
         if (empty($recipientIds) || empty($subject) || empty($body)) {
             return false;
