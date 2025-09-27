@@ -11,17 +11,18 @@ require_once BASE_PATH . '/src/Auth.php'; // Include Auth to use hasRole
 $navLinks = [
     'REGISTER' => [
         'fuhrpark' => ['name' => 'Fahrzeuge', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 013.375-3.375h1.5a1.125 1.125 0 011.125 1.125v-1.5a3.375 3.375 0 013.375-3.375H9.75" />'],
+        'documents' => ['name' => 'Dokumente', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />'],
     ],
     'ABTEILUNG' => [
         'dashboard' => ['name' => 'Dashboard', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />'],
         'dispatch' => ['name' => 'Dispatch', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />'],
-        'dispatch' => ['name' => 'Dispatch', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />'],
         'hr' => ['name' => 'Personal', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 12A3 3 0 1012 6a3 3 0 000 6z" />'],
+        'training_modules' => ['name' => 'FTO', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-2.072-1.036A59.926 59.926 0 0112 2.102a59.926 59.926 0 0110.399 7.009l-2.072 1.036m-15.482 0A50.57 50.57 0 0112 13.489a50.57 50.57 0 017.74-3.342M12 13.489l-7.74-3.342m15.48 0l-7.74 3.342" />'],
         'mein_dienst' => ['name' => 'Mein Dienst', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />'],
         'mailbox' => ['name' => 'Postfach', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />'],
     ],
     'ADMINISTRATION' => [
-        'edit_user_roles' => ['name' => 'Rollen verwalten', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 12A3 3 0 1012 6a3 3 0 000 6z" />'],
+        'edit_user_roles' => ['name' => 'Rollen verwalten', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-1.003 1.11-1.226M12 21c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6zm0 0a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" />'],
         'time_approval' => ['name' => 'Dienstzeit Genehmigung', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />'],
     ]
 ];
@@ -35,19 +36,10 @@ $navLinks = [
     <script src="https://cdn.tailwindcss.com"></script>
     <style type="text/tailwindcss">
         @layer base {
-            ::-webkit-scrollbar {
-                width: 8px;
-            }
-            ::-webkit-scrollbar-track {
-                background-color: #161B22;
-            }
-            ::-webkit-scrollbar-thumb {
-                background-color: #313945;
-                border-radius: 4px;
-            }
-            ::-webkit-scrollbar-thumb:hover {
-                background-color: #4A5361;
-            }
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background-color: #161B22; }
+            ::-webkit-scrollbar-thumb { background-color: #313945; border-radius: 4px; }
+            ::-webkit-scrollbar-thumb:hover { background-color: #4A5361; }
         }
     </style>
     <script>
@@ -55,14 +47,9 @@ $navLinks = [
       theme: {
         extend: {
           colors: {
-            'brand-bg': '#0D1117',
-            'brand-sidebar': '#161B22',
-            'brand-card': '#161B22',
-            'brand-border': '#30363D',
-            'brand-text-primary': '#C9D1D9',
-            'brand-text-secondary': '#8B949E',
-            'brand-blue': '#58A6FF',
-            'brand-red': '#F85149',
+            'brand-bg': '#0D1117', 'brand-sidebar': '#161B22', 'brand-card': '#161B22',
+            'brand-border': '#30363D', 'brand-text-primary': '#C9D1D9',
+            'brand-text-secondary': '#8B949E', 'brand-blue': '#58A6FF', 'brand-red': '#F85149',
           }
         }
       }
@@ -86,7 +73,6 @@ $navLinks = [
                 <nav class="flex-1 px-4 py-4 space-y-6">
                     <?php foreach ($navLinks as $group => $links): ?>
                         <?php
-                        // Hide ADMINISTRATION group if user is not an Admin
                         if ($group === 'ADMINISTRATION' && !Auth::hasRole('Admin')) {
                             continue;
                         }
